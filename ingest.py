@@ -17,7 +17,7 @@ def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
 def process_files(
     folder: str,
     chunk_size: int,
-    overlap: int,
+    overlap_pct: float,
     db_fi: str,
     globs: list[str],
     embedding_model: str,
@@ -47,7 +47,7 @@ def process_files(
         print(f"found {len(list(files))} files for {glob}")
         for n, fi in enumerate(files):
             fi_md = fi.read_text()
-            chunks = split_into_chunks(fi_md, chunk_size, overlap)
+            chunks = split_into_chunks(fi_md, chunk_size, int(overlap_pct * chunk_size))
             for chunk in chunks:
                 n_chunks += 1
                 res = ollama.embeddings(
@@ -68,17 +68,36 @@ def process_files(
 
 @click.command()
 @click.argument("folder", type=click.Path(exists=True))
-@click.option("--chunk-size", default=512, type=int)
-@click.option("--overlap", default=102, type=int)
-@click.option("--db", default="db.duckdb", type=click.Path(exists=True))
+@click.option(
+    "--chunk-size", default=4000, type=int, help="Size of the chunks to embed."
+)
+@click.option(
+    "--overlap", default=0.15, type=float, help="Percentage overlap between chunks."
+)
+@click.option(
+    "--db",
+    default="db.duckdb",
+    type=click.Path(exists=True),
+    help="DuckDB database file.",
+)
 @click.option(
     "--glob",
     multiple=True,
     default=["*.md"],
-    help='File extensions to include. Should be quoted to avoid shell expansion of the wildcard.  Usage `--glob "*.md" --glob "*.txt"`.',
+    help='File extension(s) to include. Should be quoted to avoid shell expansion of the wildcard.  Usage `--glob "*.md" --glob "*.txt"`.',
 )
-@click.option("--embedding-model", default="mxbai-embed-large", type=str)
-@click.option("--embedding-dim", default=1024, type=int)
+@click.option(
+    "--embedding-model",
+    default="mxbai-embed-large",
+    type=str,
+    help="Model to embed the query.  Should be the same model as used to embed the query.",
+)
+@click.option(
+    "--embedding-dim",
+    default=1024,
+    type=int,
+    help="Dimension of the embeddings.  Should match the embedding model.",
+)
 def main(
     folder: str,
     chunk_size: int,

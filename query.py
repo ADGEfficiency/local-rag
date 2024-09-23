@@ -28,6 +28,7 @@ def query_database(
     )
     rows = results.fetchall()
 
+    print("{n_chunks} CHUNKS:")
     for result in rows:
         print(result)
         print("")
@@ -43,22 +44,41 @@ def query_database(
         prompt=synthesized_prompt,
     )
 
-    print(final_response["response"])
+    print(f'RAG:\n{final_response["response"]}')
 
     if raw:
         raw_response = ollama.generate(model=llm_model, prompt=query)
-        print(raw_response["response"])
+        print(f'RAW:\n{raw_response["response"]}')
 
 
 @click.command()
 @click.argument("query", type=str)
-@click.option("--embedding-model", default="mxbai-embed-large", type=str)
-@click.option("--embedding-dim", default=1024, type=int)
-@click.option("--llm", default="codellama:13b", type=str)
-@click.option("--chunks", default=20, type=int)
-@click.option("--db", default="db.duckdb", type=click.Path(exists=True))
 @click.option(
-    "--raw/--no-raw", default=True, help="Whether to query the raw LLM as well."
+    "--embedding-model",
+    default="mxbai-embed-large",
+    type=str,
+    help="Model to embed the query.  Should be the same model as used to create the chunks in the database.",
+)
+@click.option(
+    "--embedding-dim",
+    default=1024,
+    type=int,
+    help="Dimension of the embeddings.  Should match the embedding model.",
+)
+@click.option("--llm", default="codellama:13b", type=str, help="The LLM model.")
+@click.option(
+    "--chunks", default=10, type=int, help="Number of chunks to use in the RAG prompt."
+)
+@click.option(
+    "--db",
+    default="db.duckdb",
+    type=click.Path(exists=True),
+    help="DuckDB database file.",
+)
+@click.option(
+    "--raw/--no-raw",
+    default=True,
+    help="Whether to query the raw LLM after the RAG LLM.",
 )
 def main(
     query: str,
