@@ -6,6 +6,12 @@ An alternative name for this project would be `Minimal RAG`.
 
 It uses Ollama for embeddings and LLMs, and DuckDB as a vector database.
 
+## Setup
+
+```shell-session
+$ make setup
+```
+
 ## Use
 
 ```shell-session
