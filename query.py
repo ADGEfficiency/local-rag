@@ -42,12 +42,17 @@ def query_database(
     final_response = ollama.generate(
         model=llm_model,
         prompt=synthesized_prompt,
+        options={"num_predict": 64, "temperature": 0},
     )
 
     print(f'RAG:\n{final_response["response"]}')
 
     if raw:
-        raw_response = ollama.generate(model=llm_model, prompt=query)
+        raw_response = ollama.generate(
+            model=llm_model,
+            prompt=query,
+            options={"num_predict": 64, "temperature": 0},
+        )
         print(f'RAW:\n{raw_response["response"]}')
 
 
@@ -89,6 +94,8 @@ def main(
     db: str,
     raw: bool,
 ) -> None:
+    ollama.pull(embedding_model)
+    ollama.pull(llm)
     query_database(query, embedding_model, llm, embedding_dim, chunks, db, raw)
 
 

@@ -77,7 +77,6 @@ def process_files(
 @click.option(
     "--db",
     default="db.duckdb",
-    type=click.Path(exists=True),
     help="DuckDB database file.",
 )
 @click.option(
@@ -107,6 +106,7 @@ def main(
     embedding_model: str,
     embedding_dim: int,
 ) -> None:
+    ollama.pull(embedding_model)
     process_files(folder, chunk_size, overlap, db, glob, embedding_model, embedding_dim)
 
 
