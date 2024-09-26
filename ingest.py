@@ -1,4 +1,5 @@
 import pathlib
+import re
 
 import click
 import ollama
@@ -10,9 +11,24 @@ def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
     chunks = []
     for i in range(0, len(text), chunk_size - overlap):
         chunk = text[i : i + chunk_size]
-        if len(chunk) > 0:
+        if len(chunk) > int(chunk_size * 0.1):
             chunks.append(chunk)
     return chunks
+
+
+def get_topics(chunk: str, llm_model: str) -> str:
+    topics = ollama.generate(
+        model=llm_model,
+        prompt=f"generate a list of 5 topics for this chunk. return a python list of five topics. example ['batteries', 'site']. chunk: {chunk}",
+        options={"num_predict": 128},
+    )["response"]
+
+    match = re.search(r"\[(.*?)\]", topics)
+    if match:
+        topics = match.group(1)
+    else:
+        topics = "[]"
+    return topics
 
 
 def process_files(
@@ -23,6 +39,7 @@ def process_files(
     globs: list[str],
     embedding_model: str,
     embedding_dim: int,
+    llm_model: str,
 ) -> None:
     con = common.connect_db(db_fi)
     con.execute(
@@ -53,7 +70,11 @@ def process_files(
                 )
                 for chunk in chunks:
                     n_chunks += 1
-                    chunk = f"file: {folder.name}/{fi.relative_to(folder)}, content: {chunk}"
+
+                    topics = get_topics(chunk, llm_model)
+                    chunk = f"file: {folder.name}/{fi.relative_to(folder)}, topics: [{topics}], content: {chunk}"
+                    print(fi, topics)
+
                     res = ollama.embeddings(model=embedding_model, prompt=chunk)
                     embedding = res["embedding"]
                     con.execute(
@@ -106,6 +127,12 @@ def process_files(
     type=int,
     help="Dimension of the embeddings.  Should match the embedding model.",
 )
+@click.option(
+    "--llm",
+    default=common.defaults.llm_model,
+    type=str,
+    help="The LLM model. Only used for propsitional chunking of topics.",
+)
 def main(
     folders: str,
     chunk_size: int,
@@ -114,11 +141,12 @@ def main(
     glob: list[str],
     embedding_model: str,
     embedding_dim: int,
+    llm: str,
 ) -> None:
     ollama.pull(embedding_model)
     for folder in folders:
         process_files(
-            folder, chunk_size, overlap, db, glob, embedding_model, embedding_dim
+            folder, chunk_size, overlap, db, glob, embedding_model, embedding_dim, llm
         )
 
 

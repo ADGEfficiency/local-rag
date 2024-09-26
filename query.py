@@ -1,5 +1,6 @@
 import click
 import ollama
+import rich
 
 import common
 
@@ -13,12 +14,13 @@ def query_database(
     db_fi: str,
     raw: bool,
 ) -> None:
+    console = rich.console.Console()
     con = common.connect_db(db_fi)
     rows = con.execute(
         f"""
-        SELECT chunk
+        SELECT chunk, array_distance(vector, CAST(? AS FLOAT[{embedding_dim}])) as dist, document_fi
         FROM embeddings
-        ORDER BY array_distance(vector, CAST(? AS FLOAT[{embedding_dim}]))
+        ORDER BY dist
         LIMIT {n_chunks};
         """,
         [ollama.embeddings(model=embedding_model, prompt=query)["embedding"]],
@@ -27,27 +29,31 @@ def query_database(
     print("{n_chunks} CHUNKS:")
 
     synthesized_prompt = "Here are some relevant pieces of information:\n\n"
-    for row in rows:
-        print(row)
+    for chunk, dist, document_fi in rows:
+        console.print(rich.panel.Panel(f"{dist=}, {chunk=}", title=document_fi))
         print("")
-        synthesized_prompt += row[0] + "\n\n"
+        synthesized_prompt += chunk + "\n\n"
     synthesized_prompt += f"Here is the original query: '{query}'\n\n"
 
+    options = {
+        "num_predict": common.defaults.max_tokens,
+        "temperature": common.defaults.temperature,
+    }
     final_response = ollama.generate(
         model=llm_model,
         prompt=synthesized_prompt,
-        options={"num_predict": 64, "temperature": 0},
+        options=options,
     )
 
-    print(f'\nRAG:\n{final_response["response"]}')
+    console.print(rich.panel.Panel(final_response["response"], title="RAG Response"))
 
     if raw:
         raw_response = ollama.generate(
             model=llm_model,
             prompt=query,
-            options={"num_predict": 64, "temperature": 0},
+            options=options,
         )
-        print(f'\nRAW LLM:\n{raw_response["response"]}')
+        console.print(rich.panel.Panel(raw_response["response"], title="Raw LLM"))
 
 
 @click.command()

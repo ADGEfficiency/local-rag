@@ -14,3 +14,7 @@ help:
 	python ingest.py --help
 	echo ""
 	python query.py --help
+
+lock:
+	uv pip compile requirements.txt > uv.lock
+	uv pip compile requirements-test.txt > uv-test.lock

@@ -1,3 +1,4 @@
 click
 duckdb
 ollama
+rich
