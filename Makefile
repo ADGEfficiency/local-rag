@@ -4,7 +4,6 @@ UV_ARGS ?= ""
 setup-python:
 	pip install uv
 	uv pip install -r uv.lock $(UV_ARGS)
-	brew install duckdb
 
 setup-linux: setup-python
 	wget https://github.com/duckdb/duckdb/releases/latest/download/duckdb_cli-linux-amd64
