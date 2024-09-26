@@ -8,3 +8,8 @@ setup:
 test: setup
 	uv pip install -r uv-test.lock
 	pytest tests.py
+
+help:
+	python ingest.py --help
+	echo ""
+	python query.py --help

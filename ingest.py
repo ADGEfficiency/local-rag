@@ -51,8 +51,7 @@ def process_files(
             for chunk in chunks:
                 n_chunks += 1
                 res = ollama.embeddings(
-                    model=embedding_model,
-                    prompt=chunk,
+                    model=embedding_model, prompt=f"file: {fi}, content: {chunk}"
                 )
                 embedding = res["embedding"]
                 con.execute(
