@@ -17,6 +17,7 @@ def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
 
 
 def get_topics(chunk: str, llm_model: str) -> str:
+    ollama.pull(llm_model)
     topics = ollama.generate(
         model=llm_model,
         prompt=f"generate a list of 5 topics for this chunk. return a python list of five topics. example ['batteries', 'site']. chunk: {chunk}",
