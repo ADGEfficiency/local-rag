@@ -12,5 +12,6 @@ jobs:
           python-version: '3.11'
       - run: make setup-linux UV_ARGS="--system"
       - run: |
+          curl -fsSL https://ollama.com/install.sh | sh
           ollama serve &
           make test UV_ARGS="--system"
