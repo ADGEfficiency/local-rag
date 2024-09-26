@@ -22,6 +22,12 @@ $ python ingest.py path/to/your/files
 $ python query.py "your query here"
 ```
 
+## Examples
+
+```shell-session
+$ python ingest.py ~/personal/para/resource ~/programming-resources --glob "*.md" --embedding-model mxbai-embed-large --db resource.duckdb
+```
+
 ## Help
 
 ```shell-session

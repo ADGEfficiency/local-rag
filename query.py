@@ -2,6 +2,8 @@ import click
 import duckdb
 import ollama
 
+from common import defaults
+
 
 def query_database(
     query: str,
@@ -60,7 +62,7 @@ def query_database(
 @click.argument("query", type=str)
 @click.option(
     "--embedding-model",
-    default="mxbai-embed-large",
+    default=defaults.embedding_model,
     type=str,
     help="Model to embed the query.  Should be the same model as used to create the chunks in the database.",
 )
@@ -70,7 +72,7 @@ def query_database(
     type=int,
     help="Dimension of the embeddings.  Should match the embedding model.",
 )
-@click.option("--llm", default="codellama:13b", type=str, help="The LLM model.")
+@click.option("--llm", default=defaults.llm_model, type=str, help="The LLM model.")
 @click.option(
     "--chunks", default=10, type=int, help="Number of chunks to use in the RAG prompt."
 )
