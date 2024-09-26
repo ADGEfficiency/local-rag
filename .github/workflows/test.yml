@@ -10,4 +10,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: make setup-linux test UV_ARGS="--system"
+      - run: make setup-linux UV_ARGS="--system"
+      - run: |
+          ollama serve &
+          make test UV_ARGS="--system"
