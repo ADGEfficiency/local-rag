@@ -1,10 +1,9 @@
 import pathlib
 
 import click
-import duckdb
 import ollama
 
-from common import defaults
+import common
 
 
 def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
@@ -25,9 +24,7 @@ def process_files(
     embedding_model: str,
     embedding_dim: int,
 ) -> None:
-    con = duckdb.connect(db_fi)
-    con.execute("install vss; load vss;")
-    con.execute("SET hnsw_enable_experimental_persistence=true;")
+    con = common.connect_db(db_fi)
     con.execute(
         f"""
         CREATE TABLE IF NOT EXISTS embeddings (
@@ -56,10 +53,8 @@ def process_files(
                 )
                 for chunk in chunks:
                     n_chunks += 1
-                    res = ollama.embeddings(
-                        model=embedding_model,
-                        prompt=f"file: {fi.relative_to(folder)}, content: {chunk}",
-                    )
+                    chunk = f"file: {folder.name}/{fi.relative_to(folder)}, content: {chunk}"
+                    res = ollama.embeddings(model=embedding_model, prompt=chunk)
                     embedding = res["embedding"]
                     con.execute(
                         """
@@ -101,7 +96,7 @@ def process_files(
 )
 @click.option(
     "--embedding-model",
-    default=defaults.embedding_model,
+    default=common.defaults.embedding_model,
     type=str,
     help="Model to embed the query.  Should be the same model as used to embed the query.",
 )

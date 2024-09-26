@@ -1,8 +1,7 @@
 import click
-import duckdb
 import ollama
 
-from common import defaults
+import common
 
 
 def query_database(
@@ -11,34 +10,27 @@ def query_database(
     llm_model: str,
     embedding_dim: int,
     n_chunks: int,
-    db: str,
+    db_fi: str,
     raw: bool,
 ) -> None:
-    con = duckdb.connect(db)
-    con.execute("install vss; load vss;")
-    con.execute("SET hnsw_enable_experimental_persistence=true;")
-
-    embedding = ollama.embeddings(model=embedding_model, prompt=query)["embedding"]
-    results = con.execute(
+    con = common.connect_db(db_fi)
+    rows = con.execute(
         f"""
         SELECT chunk
         FROM embeddings
         ORDER BY array_distance(vector, CAST(? AS FLOAT[{embedding_dim}]))
         LIMIT {n_chunks};
         """,
-        [embedding],
-    )
-    rows = results.fetchall()
+        [ollama.embeddings(model=embedding_model, prompt=query)["embedding"]],
+    ).fetchall()
 
     print("{n_chunks} CHUNKS:")
-    for result in rows:
-        print(result)
-        print("")
 
     synthesized_prompt = "Here are some relevant pieces of information:\n\n"
     for row in rows:
+        print(row)
+        print("")
         synthesized_prompt += row[0] + "\n\n"
-
     synthesized_prompt += f"Here is the original query: '{query}'\n\n"
 
     final_response = ollama.generate(
@@ -47,7 +39,7 @@ def query_database(
         options={"num_predict": 64, "temperature": 0},
     )
 
-    print(f'RAG:\n{final_response["response"]}')
+    print(f'\nRAG:\n{final_response["response"]}')
 
     if raw:
         raw_response = ollama.generate(
@@ -55,14 +47,14 @@ def query_database(
             prompt=query,
             options={"num_predict": 64, "temperature": 0},
         )
-        print(f'RAW:\n{raw_response["response"]}')
+        print(f'\nRAW LLM:\n{raw_response["response"]}')
 
 
 @click.command()
 @click.argument("query", type=str)
 @click.option(
     "--embedding-model",
-    default=defaults.embedding_model,
+    default=common.defaults.embedding_model,
     type=str,
     help="Model to embed the query.  Should be the same model as used to create the chunks in the database.",
 )
@@ -72,7 +64,9 @@ def query_database(
     type=int,
     help="Dimension of the embeddings.  Should match the embedding model.",
 )
-@click.option("--llm", default=defaults.llm_model, type=str, help="The LLM model.")
+@click.option(
+    "--llm", default=common.defaults.llm_model, type=str, help="The LLM model."
+)
 @click.option(
     "--chunks", default=10, type=int, help="Number of chunks to use in the RAG prompt."
 )

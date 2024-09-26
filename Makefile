@@ -1,6 +1,6 @@
 .PHONY: setup test
 
-UV_ARGS=""
+UV_ARGS ?= ""
 setup:
 	pip install uv
 	uv pip install -r uv.lock $(UV_ARGS)
