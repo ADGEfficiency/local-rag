@@ -36,7 +36,7 @@ $ make help
 
 ```
 python ingest.py --help
-Usage: ingest.py [OPTIONS] FOLDER
+Usage: ingest.py [OPTIONS] [FOLDERS]...
 
 Options:
   --chunk-size INTEGER     Size of the chunks to embed.
