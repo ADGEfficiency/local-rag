@@ -136,7 +136,7 @@ def process_files(
 def main(
     folders: str,
     chunk_size: int,
-    overlap: int,
+    overlap: float,
     db: str,
     glob: list[str],
     embedding_model: str,
