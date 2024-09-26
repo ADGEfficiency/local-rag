@@ -6,9 +6,8 @@ setup-python:
 	uv pip install -r uv.lock $(UV_ARGS)
 
 setup-linux: setup-python
-	wget https://github.com/duckdb/duckdb/releases/latest/download/duckdb_cli-linux-amd64
-	chmod +x duckdb_cli-linux-amd64
-	sudo mv duckdb_cli-linux-amd64 /usr/local/bin/duckdb
+	wget https://github.com/duckdb/duckdb/releases/download/v1.1.1/duckdb_cli-linux-amd64.zip
+	unzip duckdb_cli-linux-amd64.zip
 
 setup-macos: setup-python
 	brew install duckdb
