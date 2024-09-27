@@ -26,10 +26,8 @@ def get_topics(chunk: str, llm_model: str) -> str:
 
     match = re.search(r"\[(.*?)\]", topics)
     if match:
-        topics = match.group(1)
-    else:
-        topics = "[]"
-    return topics
+        return f"[{match.group(1)}]"
+    return "[]"
 
 
 def process_files(
@@ -67,30 +65,30 @@ def process_files(
             print(f"{n=}, {fi=}")
             try:
                 fi_md = fi.read_text()
-                chunks = split_into_chunks(
-                    fi_md, chunk_size, int(overlap_pct * chunk_size)
-                )
-                for chunk in chunks:
-                    n_chunks += 1
-
-                    topics = get_topics(chunk, llm_model)
-                    chunk = f"file: {folder.name}/{fi.relative_to(folder)}, topics: [{topics}], content: {chunk}"
-                    print(fi, topics)
-
-                    res = ollama.embeddings(model=embedding_model, prompt=chunk)
-                    embedding = res["embedding"]
-                    print(f"{len(embedding)=}")
-                    con.execute(
-                        """
-                        INSERT OR REPLACE INTO embeddings (document_fi, chunk, vector)
-                        VALUES (?, ?, ?);
-                        """,
-                        (str(fi), chunk, embedding),
-                    )
-                print(f"created {n_chunks} chunks for {fi} {n}/{len(files)}")
-
             except UnicodeDecodeError:
                 print(f"failed {n_chunks} chunks for {fi} {n}/{len(files)}")
+                continue
+
+            for chunk in split_into_chunks(
+                fi_md, chunk_size, int(overlap_pct * chunk_size)
+            ):
+                n_chunks += 1
+
+                topics = get_topics(chunk, llm_model)
+                chunk = f"file: {folder.name}/{fi.relative_to(folder)}, topics: [{topics}], content: {chunk}"
+                print(fi, topics)
+
+                res = ollama.embeddings(model=embedding_model, prompt=chunk)
+                embedding = res["embedding"]
+                print(f"{len(embedding)=}")
+                con.execute(
+                    """
+                    INSERT OR REPLACE INTO embeddings (document_fi, chunk, vector)
+                    VALUES (?, ?, ?);
+                    """,
+                    (str(fi), chunk, embedding),
+                )
+            print(f"created {n_chunks} chunks for {fi} {n}/{len(files)}")
 
     con.close()
 

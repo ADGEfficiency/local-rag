@@ -35,10 +35,10 @@ def query_database(
         synthesized_prompt += chunk + "\n\n"
     synthesized_prompt += f"Here is the original query: '{query}'\n\n"
 
-    options = {
-        "num_predict": common.defaults.max_tokens,
-        "temperature": common.defaults.temperature,
-    }
+    options = ollama.Options(
+        num_predict=common.defaults.max_tokens,
+        temperature=common.defaults.temperature,
+    )
     final_response = ollama.generate(
         model=llm_model,
         prompt=synthesized_prompt,

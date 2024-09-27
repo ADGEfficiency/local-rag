@@ -1,6 +1,7 @@
 import os
 import pathlib
 import tempfile
+import typing
 
 import duckdb
 import pytest
@@ -9,18 +10,17 @@ from click.testing import CliRunner
 from ingest import main as ingest_cli
 from query import main as query_cli
 
-
-@pytest.fixture
-def temp_dir():
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        yield tmpdirname
-
-
 DATA = "adam green, bob blue, charlie red"
 
 
 @pytest.fixture
-def dummy_data(temp_dir):
+def temp_dir() -> typing.Generator[str, None, None]:
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        yield tmpdirname
+
+
+@pytest.fixture
+def dummy_data(temp_dir: str) -> pathlib.Path:
     file_path = pathlib.Path(temp_dir) / "dummy.md"
     file_path.write_text(DATA)
     return file_path
@@ -49,7 +49,7 @@ def test_ingest_and_query(
             "--embedding-model",
             "all-minilm:22m",
             "--embedding-dim",
-            384,
+            "384",
         ],
     )
     print(f"{ingest_result.stdout=}")

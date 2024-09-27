@@ -16,6 +16,9 @@ test:
 	uv pip install -r uv-test.lock $(UV_ARGS)
 	pytest tests.py -s
 
+static:
+	mypy *.py
+
 help:
 	python ingest.py --help
 	echo ""
