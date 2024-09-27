@@ -15,7 +15,7 @@ def query_database(
     raw: bool,
 ) -> None:
     console = rich.console.Console()
-    con = common.connect_db(db_fi)
+    con = common.connect_db(db_fi, embedding_dim)
     rows = con.execute(
         f"""
         SELECT chunk, array_distance(vector, CAST(? AS FLOAT[{embedding_dim}])) as dist, document_fi

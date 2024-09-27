@@ -12,7 +12,7 @@ class Defaults:
     temperature: float = 0.0
 
 
-def connect_db(db_fi: str) -> duckdb.DuckDBPyConnection:
+def connect_db(db_fi: str, embedding_dim: int) -> duckdb.DuckDBPyConnection:
     con = duckdb.connect(db_fi)
     con.execute("install vss; load vss;")
     con.execute("SET hnsw_enable_experimental_persistence=true;")
@@ -21,7 +21,7 @@ def connect_db(db_fi: str) -> duckdb.DuckDBPyConnection:
         CREATE TABLE IF NOT EXISTS embeddings (
             document_fi TEXT,
             chunk TEXT,
-            vector FLOAT[{defaults.embedding_dim}],
+            vector FLOAT[{embedding_dim}],
             UNIQUE(document_fi, chunk)
         )
         """

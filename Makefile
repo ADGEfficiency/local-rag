@@ -1,6 +1,6 @@
 .PHONY: setup test
 
-UV_ARGS ?= ""
+UV_ARGS ?=
 setup-python:
 	pip install uv
 	uv pip install -r uv.lock $(UV_ARGS)
@@ -14,7 +14,7 @@ setup-macos: setup-python
 
 test:
 	uv pip install -r uv-test.lock $(UV_ARGS)
-	pytest tests.py
+	pytest tests.py -s
 
 help:
 	python ingest.py --help

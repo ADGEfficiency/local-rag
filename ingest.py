@@ -42,7 +42,8 @@ def process_files(
     embedding_dim: int,
     llm_model: str,
 ) -> None:
-    con = common.connect_db(db_fi)
+    print(embedding_model, embedding_dim)
+    con = common.connect_db(db_fi, embedding_dim)
     con.execute(
         f"""
         CREATE TABLE IF NOT EXISTS embeddings (
@@ -78,6 +79,7 @@ def process_files(
 
                     res = ollama.embeddings(model=embedding_model, prompt=chunk)
                     embedding = res["embedding"]
+                    print(f"{len(embedding)=}")
                     con.execute(
                         """
                         INSERT OR REPLACE INTO embeddings (document_fi, chunk, vector)

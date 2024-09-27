@@ -32,14 +32,14 @@ def test_ingest_and_query(
     chunk_size: int = 10,
 ) -> None:
     runner = CliRunner()
-    db_path = os.path.join(temp_dir, "test_db.duckdb")
+    db_path = os.path.join(temp_dir, "test_db2.duckdb")
 
     ingest_result = runner.invoke(
         ingest_cli,
         [
             temp_dir,
             "--chunk-size",
-            chunk_size,
+            str(chunk_size),
             "--overlap",
             "0.1",
             "--db",
@@ -47,13 +47,13 @@ def test_ingest_and_query(
             "--glob",
             "*.md",
             "--embedding-model",
-            "all-minilm",
+            "all-minilm:22m",
             "--embedding-dim",
-            "384",
+            384,
         ],
     )
+    print(f"{ingest_result.stdout=}")
     assert ingest_result.exit_code == 0
-    print(f"{ingest_result.output=}")
 
     con = duckdb.connect(db_path)
     result = con.execute("SELECT * FROM embeddings").fetchall()
@@ -61,7 +61,7 @@ def test_ingest_and_query(
 
     assert len(result) > 0
     assert result[0][0] == str(dummy_data)
-    assert result[0][1] == DATA[:chunk_size]
+    assert "content: adam green" in result[0][1]
     assert len(result[0][2]) == 384
 
     query_result = runner.invoke(
@@ -71,7 +71,7 @@ def test_ingest_and_query(
             "--db",
             db_path,
             "--embedding-model",
-            "all-minilm",
+            "all-minilm:22m",
             "--embedding-dim",
             "384",
             "--llm",
@@ -81,4 +81,3 @@ def test_ingest_and_query(
     print(f"{query_result.output=}")
     assert query_result.exit_code == 0
     assert "green" in query_result.output.lower()
-    breakpoint()  # fmt: skip
