@@ -2,7 +2,7 @@ import click
 import ollama
 import rich
 
-import common
+import core
 
 
 def query_database(
@@ -15,7 +15,7 @@ def query_database(
     raw: bool,
 ) -> None:
     console = rich.console.Console()
-    con = common.connect_db(db_fi, embedding_dim)
+    con = core.connect_db(db_fi, embedding_dim)
     rows = con.execute(
         f"""
         SELECT chunk, array_distance(vector, CAST(? AS FLOAT[{embedding_dim}])) as dist, document_fi
@@ -36,8 +36,8 @@ def query_database(
     synthesized_prompt += f"Here is the original query: '{query}'\n\n"
 
     options = ollama.Options(
-        num_predict=common.defaults.max_tokens,
-        temperature=common.defaults.temperature,
+        num_predict=core.defaults.max_tokens,
+        temperature=core.defaults.temperature,
     )
     final_response = ollama.generate(
         model=llm_model,
@@ -60,7 +60,7 @@ def query_database(
 @click.argument("query", type=str)
 @click.option(
     "--embedding-model",
-    default=common.defaults.embedding_model,
+    default=core.defaults.embedding_model,
     type=str,
     help="Model to embed the query.  Should be the same model as used to create the chunks in the database.",
 )
@@ -70,9 +70,7 @@ def query_database(
     type=int,
     help="Dimension of the embeddings.  Should match the embedding model.",
 )
-@click.option(
-    "--llm", default=common.defaults.llm_model, type=str, help="The LLM model."
-)
+@click.option("--llm", default=core.defaults.llm_model, type=str, help="The LLM model.")
 @click.option(
     "--chunks", default=10, type=int, help="Number of chunks to use in the RAG prompt."
 )

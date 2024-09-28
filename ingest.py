@@ -4,7 +4,7 @@ import re
 import click
 import ollama
 
-import common
+import core
 
 
 def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
@@ -41,7 +41,7 @@ def process_files(
     llm_model: str,
 ) -> None:
     print(embedding_model, embedding_dim)
-    con = common.connect_db(db_fi, embedding_dim)
+    con = core.connect_db(db_fi, embedding_dim)
     con.execute(
         f"""
         CREATE TABLE IF NOT EXISTS embeddings (
@@ -118,7 +118,7 @@ def process_files(
 )
 @click.option(
     "--embedding-model",
-    default=common.defaults.embedding_model,
+    default=core.defaults.embedding_model,
     type=str,
     help="Model to embed the query.  Should be the same model as used to embed the query.",
 )
@@ -130,7 +130,7 @@ def process_files(
 )
 @click.option(
     "--llm",
-    default=common.defaults.llm_model,
+    default=core.defaults.llm_model,
     type=str,
     help="The LLM model. Only used for propsitional chunking of topics.",
 )
