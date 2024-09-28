@@ -39,6 +39,9 @@ def process_files(
     embedding_model: str,
     embedding_dim: int,
     llm_model: str,
+    # TODO - needs a rethink - how to make extensible?
+    append_topics: bool = True,
+    append_file_path: bool = True,
 ) -> None:
     print(embedding_model, embedding_dim)
     con = core.connect_db(db_fi, embedding_dim)
@@ -69,24 +72,32 @@ def process_files(
                 print(f"failed {n_chunks} chunks for {fi} {n}/{len(files)}")
                 continue
 
-            for chunk in split_into_chunks(
+            for chunk_content in split_into_chunks(
                 fi_md, chunk_size, int(overlap_pct * chunk_size)
             ):
                 n_chunks += 1
+                chunk = ""
+                if append_file_path:
+                    chunk += f"file: {folder.name}/{fi.relative_to(folder)}"
 
-                topics = get_topics(chunk, llm_model)
-                chunk = f"file: {folder.name}/{fi.relative_to(folder)}, topics: [{topics}], content: {chunk}"
-                print(fi, topics)
+                if append_topics:
+                    topics = get_topics(chunk, llm_model)
+                    chunk += f" topics: {topics}"
+                    print(fi, topics)
 
-                res = ollama.embeddings(model=embedding_model, prompt=chunk)
-                embedding = res["embedding"]
-                print(f"{len(embedding)=}")
+                chunk += f" content: {chunk_content}"
                 con.execute(
                     """
                     INSERT OR REPLACE INTO embeddings (document_fi, chunk, vector)
                     VALUES (?, ?, ?);
                     """,
-                    (str(fi), chunk, embedding),
+                    (
+                        str(fi),
+                        chunk,
+                        ollama.embeddings(model=embedding_model, prompt=chunk)[
+                            "embedding"
+                        ],
+                    ),
                 )
             print(f"created {n_chunks} chunks for {fi} {n}/{len(files)}")
 

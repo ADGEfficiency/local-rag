@@ -1,10 +1,8 @@
 # Local RAG
 
-A RAG tool that can be run locally on your own data.
+RAG that you can run locally, on your own data. Ollama for embeddings and LLMs, with DuckDB as a vector database.
 
 Alternative names for this project would be `Minimal RAG`, or `RAG From Scratch`.
-
-It uses Ollama for embeddings and LLMs, and DuckDB as a vector database.
 
 ## Setup
 
