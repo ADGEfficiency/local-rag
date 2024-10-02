@@ -12,11 +12,13 @@ setup-linux: setup-python
 setup-macos: setup-python
 	brew install duckdb
 
-test:
+setup-test: setup-python
 	uv pip install -r uv-test.lock $(UV_ARGS)
+
+test: setup-test
 	pytest tests.py -s
 
-static:
+static: setup-test
 	mypy *.py
 
 help:
