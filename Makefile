@@ -21,7 +21,7 @@ static:
 
 help:
 	python ingest.py --help
-	echo ""
+	@echo ""
 	python query.py --help
 
 lock:

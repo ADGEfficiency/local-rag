@@ -3,6 +3,7 @@ import ollama
 import rich
 
 import core
+import ext
 
 
 def query_database(
@@ -26,14 +27,22 @@ def query_database(
         [ollama.embeddings(model=embedding_model, prompt=query)["embedding"]],
     ).fetchall()
 
-    print("{n_chunks} CHUNKS:")
+    print(f"{n_chunks} CHUNKS:")
 
-    synthesized_prompt = "Here are some relevant pieces of information:\n\n"
+    prompt = f"query: {query}"
+    topics = ext.get_topics(prompt, llm_model)
+    prompt += f" topics: {topics}"
+    print(f"{query=} {topics=}")
+
     for chunk, dist, document_fi in rows:
-        console.print(rich.panel.Panel(f"{dist=}, {chunk=}", title=document_fi))
+        console.print(
+            rich.panel.Panel(
+                f"{dist=}, {chunk=}", title=f"[yellow]CHUNK: {document_fi}[/]"
+            )
+        )
         print("")
-        synthesized_prompt += chunk + "\n\n"
-    synthesized_prompt += f"Here is the original query: '{query}'\n\n"
+        prompt += f" content: {chunk}"
+    prompt += f"query: {query}"
 
     options = ollama.Options(
         num_predict=core.defaults.max_tokens,
@@ -41,11 +50,9 @@ def query_database(
     )
     final_response = ollama.generate(
         model=llm_model,
-        prompt=synthesized_prompt,
+        prompt=prompt,
         options=options,
     )
-
-    console.print(rich.panel.Panel(final_response["response"], title="RAG Response"))
 
     if raw:
         raw_response = ollama.generate(
@@ -53,7 +60,11 @@ def query_database(
             prompt=query,
             options=options,
         )
-        console.print(rich.panel.Panel(raw_response["response"], title="Raw LLM"))
+        console.print(rich.panel.Panel(raw_response["response"], title="[red]Raw LLM"))
+
+    console.print(
+        rich.panel.Panel(final_response["response"], title="[green]RAG Response[/]")
+    )
 
 
 @click.command()

@@ -1,10 +1,10 @@
 import pathlib
-import re
 
 import click
 import ollama
 
 import core
+import ext
 
 
 def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
@@ -14,20 +14,6 @@ def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
         if len(chunk) > int(chunk_size * 0.1):
             chunks.append(chunk)
     return chunks
-
-
-def get_topics(chunk: str, llm_model: str) -> str:
-    ollama.pull(llm_model)
-    topics = ollama.generate(
-        model=llm_model,
-        prompt=f"generate a list of 5 topics for this chunk. return a python list of five topics. example ['batteries', 'site']. chunk: {chunk}",
-        options={"num_predict": 128},
-    )["response"]
-
-    match = re.search(r"\[(.*?)\]", topics)
-    if match:
-        return f"[{match.group(1)}]"
-    return "[]"
 
 
 def process_files(
@@ -81,7 +67,7 @@ def process_files(
                     chunk += f"file: {folder.name}/{fi.relative_to(folder)}"
 
                 if append_topics:
-                    topics = get_topics(chunk, llm_model)
+                    topics = ext.get_topics(chunk, llm_model)
                     chunk += f" topics: {topics}"
                     print(fi, topics)
 

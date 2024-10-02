@@ -12,18 +12,16 @@ $ make setup
 
 ## Use
 
+Ingest all Markdown files from `~/programming-resources` into a database `resource.duckdb`:
+
 ```shell-session
-$ python ingest.py path/to/your/files
+$ python ingest.py ~/programming-resources --glob "*.md" --embedding-model mxbai-embed-large --db resource.duckdb
 ```
 
-```shell-session
-$ python query.py "your query here"
-```
-
-## Examples
+Query the `resource.duckdb` database for the most relevant chunks to the query "how to install python":
 
 ```shell-session
-$ python ingest.py ~/personal/para/resource ~/programming-resources --glob "*.md" --embedding-model mxbai-embed-large --db resource.duckdb
+$ python query.py "how to install python" --embedding-model mxbai-embed-large --db resource.duckdb
 ```
 
 ## Help
@@ -47,8 +45,9 @@ Options:
                            as used to embed the query.
   --embedding-dim INTEGER  Dimension of the embeddings.  Should match the
                            embedding model.
+  --llm TEXT               The LLM model. Only used for propsitional chunking
+                           of topics.
   --help                   Show this message and exit.
-echo ""
 
 python query.py --help
 Usage: query.py [OPTIONS] QUERY
