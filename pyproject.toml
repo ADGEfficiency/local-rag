@@ -1,0 +1,20 @@
+[project]
+name = "local-rag"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "click",
+    "duckdb",
+    "markdownify",
+    "mistune",
+    "ollama",
+    "rich",
+]
+
+[project.optional-dependencies]
+test = [
+    "mypy>=1.11.2",
+    "pytest>=8.3.3",
+]

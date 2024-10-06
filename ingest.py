@@ -2,6 +2,7 @@ import pathlib
 
 import click
 import ollama
+from rich import print
 
 import core
 import ext
@@ -16,6 +17,9 @@ def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
     return chunks
 
 
+from better_chunking import split_into_chunks
+
+
 def process_files(
     folder: str | pathlib.Path,
     chunk_size: int,
@@ -26,7 +30,6 @@ def process_files(
     embedding_dim: int,
     llm_model: str,
     # TODO - needs a rethink - how to make extensible?
-    append_topics: bool = True,
     append_file_path: bool = True,
 ) -> None:
     print(embedding_model, embedding_dim)
@@ -58,20 +61,48 @@ def process_files(
                 print(f"failed {n_chunks} chunks for {fi} {n}/{len(files)}")
                 continue
 
-            for chunk_content in split_into_chunks(
-                fi_md, chunk_size, int(overlap_pct * chunk_size)
+            for chunk_n, chunk_content in enumerate(
+                split_into_chunks(fi_md, chunk_size, int(overlap_pct * chunk_size))
             ):
                 n_chunks += 1
                 chunk = ""
                 if append_file_path:
-                    chunk += f"file: {folder.name}/{fi.relative_to(folder)}"
+                    chunk += f"file: {folder.name}/{fi.relative_to(folder)}, "
 
-                if append_topics:
-                    topics = ext.get_topics(chunk, llm_model)
-                    chunk += f" topics: {topics}"
-                    print(fi, topics)
+                contextual_rag = True
+                if contextual_rag:
+                    import textwrap
 
-                chunk += f" content: {chunk_content}"
+                    chunk_context_query = textwrap.dedent(
+                        f"""<document>
+                        {fi_md}
+                        </document>
+                        Here is the chunk we want to situate within the whole document:
+                        <chunk>
+                        {chunk_content}
+                        </chunk>
+                        Please give a short succint context to situate this chunk within the overall document for the
+                        purposes of improving search retreival of the chunk. Answer only with the succint contexnt
+                        and nothing else. If there is any Python code in the block, explain what it does.
+                        Begin your answer with `This chunk contains`. Your answer should contain `This chunk contains`.
+                    """
+                    )
+                    ollama.pull(llm_model)
+                    chunk_context = ollama.generate(
+                        model=llm_model, prompt=chunk_context_query
+                    )["response"]
+                    # TODO - capitalize the first letter of chunk_context
+                    chunk_context = chunk_context.replace("This chunk contains ", "")
+
+                    chunk = f"context: {chunk_context}, {chunk}"
+
+                    # TODO - could include the chunk number in the prompt?
+
+                print(
+                    f"[yellow]{chunk_n=}, {fi=}, [green]{chunk_content=}[/], [red]{chunk_context=}[/]\n"
+                )
+
+                chunk += f" chunk: {chunk_content}"
                 con.execute(
                     """
                     INSERT OR REPLACE INTO embeddings (document_fi, chunk, vector)
@@ -85,7 +116,7 @@ def process_files(
                         ],
                     ),
                 )
-            print(f"created {n_chunks} chunks for {fi} {n}/{len(files)}")
+            print(f"created {n_chunks} chunks before {fi} {n}/{len(files)}")
 
     con.close()
 

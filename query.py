@@ -29,10 +29,7 @@ def query_database(
 
     print(f"{n_chunks} CHUNKS:")
 
-    prompt = f"query: {query}"
-    topics = ext.get_topics(prompt, llm_model)
-    prompt += f" topics: {topics}"
-    print(f"{query=} {topics=}")
+    prompt = f"You are a RAG agent, answering queries from users. You will be given a query to answer, and a number of chunks of context. These chunks of context are found using vector similarity between the query and a document database. Please answer the following query:\n\n<query>{query}</query>"
 
     for chunk, dist, document_fi in rows:
         console.print(
@@ -42,12 +39,13 @@ def query_database(
         )
         print("")
         prompt += f" content: {chunk}"
-    prompt += f"query: {query}"
+    prompt += f"Please answer the following query:\n\n<query>{query}</query>"
 
     options = ollama.Options(
         num_predict=core.defaults.max_tokens,
         temperature=core.defaults.temperature,
     )
+    ollama.pull(llm_model)
     final_response = ollama.generate(
         model=llm_model,
         prompt=prompt,
@@ -65,6 +63,7 @@ def query_database(
     console.print(
         rich.panel.Panel(final_response["response"], title="[green]RAG Response[/]")
     )
+    print(final_response["response"])
 
 
 @click.command()
