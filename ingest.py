@@ -3,6 +3,7 @@ import pathlib
 import click
 import ollama
 from rich import print
+import duckdb
 
 from chunking import get_chunk_context
 from markdown_chunking import split_into_chunks as chunk_markdown
@@ -18,11 +19,12 @@ def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
             chunks.append(chunk)
     return chunks
 
-def is_document_in_db(con, document_fi: str) -> bool:
+def is_document_in_db(con: duckdb.DuckDBPyConnection, document_fi: str) -> bool:
     result = con.execute(
         "SELECT COUNT(*) FROM embeddings WHERE document_fi = ?", (document_fi,)
     ).fetchone()
-    return result[0] > 0
+    assert result is not None
+    return bool(result[0] > 0)
 
 
 def get_file_content(fi: pathlib.Path) -> str | None:

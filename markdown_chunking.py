@@ -24,7 +24,7 @@ markdown_parser = mistune.create_markdown()
 from markdownify import markdownify
 
 
-def split_into_chunks(text: str, chunk_size: int, overlap: int = 1) -> list[str]:
+def split_into_chunks(text: str, chunk_size: int | None, overlap: int = 1) -> list[str]:
     soup = bs4.BeautifulSoup(str(markdown_parser(text)), "html.parser")
 
     paragraphs: list[list[str]] = [[]]
