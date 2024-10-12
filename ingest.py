@@ -1,14 +1,14 @@
 import pathlib
+import typing
 
 import click
+import core
+import duckdb
 import ollama
 from rich import print
-import duckdb
 
 from chunking import get_chunk_context
 from markdown_chunking import split_into_chunks as chunk_markdown
-import core
-import typing
 
 
 def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
@@ -18,6 +18,7 @@ def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
         if len(chunk) > int(chunk_size * 0.1):
             chunks.append(chunk)
     return chunks
+
 
 def is_document_in_db(con: duckdb.DuckDBPyConnection, document_fi: str) -> bool:
     result = con.execute(
@@ -33,6 +34,7 @@ def get_file_content(fi: pathlib.Path) -> str | None:
     except UnicodeDecodeError:
         return None
 
+
 def process_files(
     folder: str | pathlib.Path,
     chunk_size: int,
@@ -43,25 +45,14 @@ def process_files(
     embedding_dim: int,
     llm_model: str,
     # TODO - needs a rethink - how to make extensible?
-    chunk_fn: typing.Literal["split_into_chunks", "chunk_markdown"] = "split_into_chunks",
+    chunk_fn: typing.Literal[
+        "split_into_chunks", "chunk_markdown"
+    ] = "split_into_chunks",
     skip_ingested_files: bool = True,
     append_file_path: bool = False,
     contextual_rag: bool = False,
 ) -> None:
     print(embedding_model, embedding_dim)
-    con = core.connect_db(db_fi, embedding_dim)
-    con.execute(
-        f"""
-        CREATE TABLE IF NOT EXISTS embeddings (
-            document_fi TEXT,
-            chunk TEXT,
-            vector FLOAT[{embedding_dim}],
-            UNIQUE(document_fi, chunk)
-        )
-        """
-    )
-    con.execute("DROP INDEX IF EXISTS idx;")
-    con.execute("CREATE INDEX idx ON embeddings USING HNSW (vector);")
 
     folder = pathlib.Path(folder)
     assert folder.exists()
@@ -70,7 +61,6 @@ def process_files(
         files = list(folder.rglob(glob))
         print(f"found {len(list(files))} files for {glob}")
         for n, fi in enumerate(files):
-
             if skip_ingested_files and is_document_in_db(con, str(fi)):
                 print(f"skipping {fi} as already processed {n}/{len(files)}")
                 continue

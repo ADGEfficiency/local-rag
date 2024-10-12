@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ingest = "lrag:cli.cli"
+ingest = "lrag:cli.ingest"
 
 [build-system]
 requires = ["hatchling"]

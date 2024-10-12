@@ -3,7 +3,7 @@
 UV_ARGS ?=--system
 setup-python:
 	pip install uv
-	uv pip install -r pyproject.toml $(UV_ARGS)
+	uv pip install -r pyproject.toml $(UV_ARGS) --all-extras
 
 setup-linux: setup-python
 	wget https://github.com/duckdb/duckdb/releases/download/v1.1.1/duckdb_cli-linux-amd64.zip
