@@ -4,8 +4,10 @@ import click
 import ollama
 from rich import print
 
+from chunking import get_chunk_context
+from markdown_chunking import split_into_chunks as chunk_markdown
 import core
-import ext
+import typing
 
 
 def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
@@ -16,9 +18,18 @@ def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
             chunks.append(chunk)
     return chunks
 
+def is_document_in_db(con, document_fi: str) -> bool:
+    result = con.execute(
+        "SELECT COUNT(*) FROM embeddings WHERE document_fi = ?", (document_fi,)
+    ).fetchone()
+    return result[0] > 0
 
-from better_chunking import split_into_chunks
 
+def get_file_content(fi: pathlib.Path) -> str | None:
+    try:
+        return fi.read_text()
+    except UnicodeDecodeError:
+        return None
 
 def process_files(
     folder: str | pathlib.Path,
@@ -30,7 +41,10 @@ def process_files(
     embedding_dim: int,
     llm_model: str,
     # TODO - needs a rethink - how to make extensible?
-    append_file_path: bool = True,
+    chunk_fn: typing.Literal["split_into_chunks", "chunk_markdown"] = "split_into_chunks",
+    skip_ingested_files: bool = True,
+    append_file_path: bool = False,
+    contextual_rag: bool = False,
 ) -> None:
     print(embedding_model, embedding_dim)
     con = core.connect_db(db_fi, embedding_dim)
@@ -54,55 +68,41 @@ def process_files(
         files = list(folder.rglob(glob))
         print(f"found {len(list(files))} files for {glob}")
         for n, fi in enumerate(files):
+
+            if skip_ingested_files and is_document_in_db(con, str(fi)):
+                print(f"skipping {fi} as already processed {n}/{len(files)}")
+                continue
+
             print(f"{n=}, {fi=}")
-            try:
-                fi_md = fi.read_text()
-            except UnicodeDecodeError:
+
+            fi_md = get_file_content(fi)
+
+            if not fi_md:
                 print(f"failed {n_chunks} chunks for {fi} {n}/{len(files)}")
                 continue
 
+            chunker = split_into_chunks
+            if chunk_fn == "chunk_markdown":
+                chunker = chunk_markdown
+
             for chunk_n, chunk_content in enumerate(
-                split_into_chunks(fi_md, chunk_size, int(overlap_pct * chunk_size))
+                chunker(fi_md, chunk_size, int(overlap_pct * chunk_size))
             ):
                 n_chunks += 1
                 chunk = ""
+                chunk_log = f"[yellow]{chunk_n=}, {fi=}[/], [green]{chunk_content=}[/]"
+
                 if append_file_path:
                     chunk += f"file: {folder.name}/{fi.relative_to(folder)}, "
 
-                contextual_rag = True
                 if contextual_rag:
-                    import textwrap
+                    chunk_context = get_chunk_context(fi_md, chunk_content, llm_model)
+                    chunk = chunk_context + ", " + chunk
+                    chunk_log += f", [red]{chunk_context=}[/]\n"
 
-                    chunk_context_query = textwrap.dedent(
-                        f"""<document>
-                        {fi_md}
-                        </document>
-                        Here is the chunk we want to situate within the whole document:
-                        <chunk>
-                        {chunk_content}
-                        </chunk>
-                        Please give a short succint context to situate this chunk within the overall document for the
-                        purposes of improving search retreival of the chunk. Answer only with the succint contexnt
-                        and nothing else. If there is any Python code in the block, explain what it does.
-                        Begin your answer with `This chunk contains`. Your answer should contain `This chunk contains`.
-                    """
-                    )
-                    ollama.pull(llm_model)
-                    chunk_context = ollama.generate(
-                        model=llm_model, prompt=chunk_context_query
-                    )["response"]
-                    # TODO - capitalize the first letter of chunk_context
-                    chunk_context = chunk_context.replace("This chunk contains ", "")
-
-                    chunk = f"context: {chunk_context}, {chunk}"
-
-                    # TODO - could include the chunk number in the prompt?
-
-                print(
-                    f"[yellow]{chunk_n=}, {fi=}, [green]{chunk_content=}[/], [red]{chunk_context=}[/]\n"
-                )
-
+                print(chunk_log)
                 chunk += f" chunk: {chunk_content}"
+
                 con.execute(
                     """
                     INSERT OR REPLACE INTO embeddings (document_fi, chunk, vector)

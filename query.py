@@ -27,18 +27,65 @@ def query_database(
         [ollama.embeddings(model=embedding_model, prompt=query)["embedding"]],
     ).fetchall()
 
-    print(f"{n_chunks} CHUNKS:")
+    docs = [row[2] for row in rows]
+    import collections
+    print(f"{len(rows)} chunks in document_fis: {collections.Counter(docs)}")
 
-    prompt = f"You are a RAG agent, answering queries from users. You will be given a query to answer, and a number of chunks of context. These chunks of context are found using vector similarity between the query and a document database. Please answer the following query:\n\n<query>{query}</query>"
+    # reranking - input = query + chunk, output = similarity score -> used to reorder the chunks
+    # would require llm returning float score...
+    # reranker would only return the top 25% maybe?
+
+    if False:
+        for chunk in rows:
+            import textwrap
+            reranking_prompt = textwrap.dedent(f"""
+            Compute a similarity score between the following query and text chunk. The score should be an integer number between 0 and 5 (inclusive), where higher scores indicate greater similarity.
+
+            Your response **must** be a JSON object in the following format:
+
+            ```json
+            {{"similarity": 3}}
+            ```
+
+            **Important Instructions:**
+
+            - Do **not** include any additional text, explanations, or formatting in your response.
+            - Do **not** include code block markers or quotes around the JSON object.
+            - Only output the JSON object as specified.
+
+            **Query:**
+
+            {query}
+
+            **Chunk:**
+
+            {chunk[0]}
+            """)
+            ollama.pull(llm_model)
+            final_response = ollama.generate(
+                model=llm_model,
+                prompt=reranking_prompt,
+                options = ollama.Options(
+                    num_predict=128,
+                    temperature=0.0
+                )
+            )
+            import json
+            response = final_response["response"]
+            print(f"{response=}, {chunk[-1]}")
+            rerank = float(json.loads(response)["similarity"])
+
+
+    prompt = f"You are a RAG agent, answering queries from users. You will be given a query to answer, and a number of chunks of context. These chunks of context are found using vector similarity between the query and a document database. Please answer the following query:\n\n<query>{query}</query>\n\nChunks start:"
 
     for chunk, dist, document_fi in rows:
         console.print(
             rich.panel.Panel(
-                f"{dist=}, {chunk=}", title=f"[yellow]CHUNK: {document_fi}[/]"
+                f"{dist=}, {chunk=}", title=f"[yellow]chunk from {document_fi}[/]"
             )
         )
         print("")
-        prompt += f" content: {chunk}"
+        prompt += f"<chunk>{chunk}</chunk>"
     prompt += f"Please answer the following query:\n\n<query>{query}</query>"
 
     options = ollama.Options(
