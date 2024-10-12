@@ -1,7 +1,7 @@
 .PHONY: setup test
 
 UV_ARGS ?=--system
-setup-python: lock
+setup-python:
 	pip install uv
 	uv pip install -r pyproject.toml $(UV_ARGS)
 
