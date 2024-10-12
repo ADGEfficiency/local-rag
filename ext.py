@@ -7,10 +7,7 @@ def get_topics(chunk: str, llm_model: str) -> str:
     ollama.pull(llm_model)
     topics = ollama.generate(
         model=llm_model,
-        prompt=f"Task: Create a list of topics for this content. Expected Output: A list of less than five topics. The list should be pure json. Content: {chunk} ```json",
+        prompt=f"Plesae create a list of topics for this chunk for the purpose of improving retrival of the chunk.  Answer only with a list of topics and nothing else. <chunk>{chunk}</chunk>",
         options={"num_predict": 128},
     )["response"]
-    match = re.search(r"\[(.*?)\]", topics)
-    if match:
-        return f"[{match.group(1)}]"
-    return "[]"
+    return str(topics)

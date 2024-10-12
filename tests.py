@@ -61,7 +61,7 @@ def test_ingest_and_query(
 
     assert len(result) > 0
     assert result[0][0] == str(dummy_data)
-    assert "content: adam green" in result[0][1]
+    assert "chunk: adam green" in result[0][1]
     assert len(result[0][2]) == 384
 
     query_result = runner.invoke(
