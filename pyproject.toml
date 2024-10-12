@@ -1,7 +1,7 @@
 [project]
-name = "local-rag"
+name = "lrag"
 version = "0.1.0"
-description = "Add your description here"
+description = "Local Retrival Augmented Generation."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -12,6 +12,13 @@ dependencies = [
     "ollama",
     "rich",
 ]
+
+[project.scripts]
+ingest = "lrag:cli.cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project.optional-dependencies]
 test = [
