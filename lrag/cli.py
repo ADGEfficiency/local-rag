@@ -1,5 +1,9 @@
 import pathlib
 
+import loguru
+from rich.console import Console
+from rich.logging import RichHandler
+
 import lrag
 from lrag.models import Chunk, File
 
@@ -11,7 +15,7 @@ def get_file_content(fi: pathlib.Path) -> str | None:
         return None
 
 
-def gather_content_from_files(
+def get_content_from_files(
     folder: pathlib.Path,
     globs: list[str],
     previously_ingested_files: set[pathlib.Path] | None = None,
@@ -54,6 +58,17 @@ def create_chunks_from_file_contents(
     return chunks
 
 
+def append_chunk_extensions(chunks: list[Chunk], chunk_extensions: list[str]) -> None:
+    chunk_extensions_dispatch = {
+        "file_path": lrag.chunking.prepend_file_path_to_chunk,
+    }
+
+    for chunk_extension in chunk_extensions:
+        chunk_extension_fn = chunk_extensions_dispatch[chunk_extension]
+        for chunk in chunks:
+            chunk_extension_fn(chunk)
+
+
 def ingest() -> None:
     # CLI arguments
     db_fi = "temp.db"
@@ -64,35 +79,38 @@ def ingest() -> None:
     chunk_size = 2000
     overlap = 0.1
     chunk_extensions = ["file_path"]
+    reingest_files = False
+    log_level = "INFO"
+
+    # setup logging
+    loguru.logger.remove()
+    loguru.logger.add(
+        RichHandler(
+            console=Console(),
+            rich_tracebacks=True,
+            tracebacks_show_locals=True,
+            tracebacks_extra_lines=2,
+            tracebacks_theme="monokai",
+            show_path=False,
+        ),
+        level=log_level,
+        format="{message}",
+    )
 
     # setup the duckdb database
     lrag.db.setup_db(db_fi, embedding_dim)
 
     # gather content from files
-    fis = gather_content_from_files(
+    fis = get_content_from_files(
         folder,
         globs,
-        previously_ingested_files={
-            pathlib.Path(
-                "/Users/adamgreen/programming-resources/bash-and-unix/useful-tools.md"
-            )
-        },
+        previously_ingested_files=lrag.db.get_previous_ingested_files(
+            db_fi, reingest_files
+        ),
     )
 
     # create chunks from file content
     chunks = create_chunks_from_file_contents(fis, chunk_strategy, chunk_size, overlap)
-
-    def append_chunk_extensions(
-        chunks: list[Chunk], chunk_extensions: list[str], **kwargs
-    ) -> list[Chunk]:
-        chunk_extensions_dispatch = {
-            "file_path": lrag.chunking.prepend_file_path_to_chunk,
-        }
-
-        for chunk_extension in chunk_extensions:
-            chunk_extension_fn = chunk_extensions_dispatch[chunk_extension]
-            for chunk in chunks:
-                chunk = chunk_extension_fn(chunk)
 
     # add extensions to chunks - context, file path etc
     append_chunk_extensions(chunks, chunk_extensions)
