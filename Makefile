@@ -17,6 +17,7 @@ setup-test: setup-python
 
 test: setup-test
 	pytest tests.py -s
+	uv run pytest tests
 
 static: setup-test
 	mypy *.py

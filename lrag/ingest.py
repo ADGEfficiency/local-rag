@@ -1,6 +1,8 @@
 import pathlib
 import typing
 
+import click
+
 import lrag
 from lrag.config import ChunkExtensions, ChunkStrategies, defaults
 from lrag.models import Chunk, File
@@ -72,9 +74,6 @@ def append_chunk_extensions(
         for chunk in chunks:
             chunk_extension_fn(chunk)
         print(f"ran {chunk_extension} on {len(chunks)} chunks")
-
-
-import click
 
 
 @click.command()
