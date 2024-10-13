@@ -1,3 +1,3 @@
-from lrag import chunking, db
+from lrag import chunking, db, logger
 
-__all__ = ["db", "chunking"]
+__all__ = ["db", "chunking", "logger"]

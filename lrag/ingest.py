@@ -1,10 +1,6 @@
 import pathlib
 import typing
 
-import loguru
-from rich.console import Console
-from rich.logging import RichHandler
-
 import lrag
 from lrag.config import ChunkExtensions, ChunkStrategies, defaults
 from lrag.models import Chunk, File
@@ -90,6 +86,11 @@ import click
     callback=lambda ctx, param, value: (pathlib.Path(p) for p in value),
 )
 @click.option(
+    "--log-level",
+    default="INFO",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]),
+)
+@click.option(
     "--glob",
     "globs",
     type=str,
@@ -135,6 +136,7 @@ import click
 )
 def ingest(
     folders: list[pathlib.Path],
+    log_level: str,
     globs: tuple[str],
     db_fi: str,
     embedding_model: str,
@@ -144,23 +146,8 @@ def ingest(
     overlap_pct: float,
     chunk_extensions: tuple[ChunkExtensions, ...],
 ) -> None:
-    # CLI arguments
-    log_level = "INFO"
-
     # setup logging
-    loguru.logger.remove()
-    loguru.logger.add(
-        RichHandler(
-            console=Console(),
-            rich_tracebacks=True,
-            tracebacks_show_locals=True,
-            tracebacks_extra_lines=2,
-            tracebacks_theme="monokai",
-            show_path=False,
-        ),
-        level=log_level,
-        format="{message}",
-    )
+    lrag.logger.setup_logging(log_level)
 
     # setup the duckdb database
     lrag.db.setup_db(db_fi, embedding_model)
