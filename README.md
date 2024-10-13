@@ -63,3 +63,10 @@ Options:
   --raw / --no-raw         Whether to query the raw LLM after the RAG LLM.
   --help                   Show this message and exit.
 ```
+
+## Config Explanation
+
+Precedence (high precendec to low):
+CLI arguments
+Env vars
+Defaults in Python object

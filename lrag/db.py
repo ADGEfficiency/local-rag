@@ -5,7 +5,6 @@ import ollama
 from loguru import logger
 from rich import print
 
-from lrag.config import defaults
 from lrag.models import Chunk
 
 
@@ -16,7 +15,11 @@ def connect_db(db_fi: str) -> duckdb.DuckDBPyConnection:
     return con
 
 
-def setup_db(db_fi: str, embedding_dim: int) -> None:
+def setup_db(db_fi: str, embedding_model: str) -> None:
+    embedding_dim = len(
+        ollama.embeddings(model=embedding_model, prompt="a")["embedding"]
+    )
+
     con = connect_db(db_fi)
     con.execute(
         f"""
@@ -50,11 +53,7 @@ def get_previous_ingested_files(db_fi: str, reingest_files: bool) -> set[pathlib
     return previously_ingested_files
 
 
-def insert_chunks(
-    db_fi: str,
-    chunks: list[Chunk],
-    embedding_model: str = defaults.embedding_model,
-) -> None:
+def insert_chunks(db_fi: str, chunks: list[Chunk], embedding_model: str) -> None:
     con = connect_db(db_fi)
 
     to_insert: list[tuple[str, str, str]] = []
@@ -71,6 +70,10 @@ def insert_chunks(
                 ),
             )
         )
+
+    if len(to_insert) == 0:
+        print("no chunks to insert")
+        return
 
     con.executemany(
         """

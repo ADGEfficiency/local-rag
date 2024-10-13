@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ingest = "lrag:cli.ingest"
+ingest = "lrag:ingest.ingest"
 
 [build-system]
 requires = ["hatchling"]
@@ -47,5 +47,5 @@ no_implicit_optional = true
 strict_equality = true
 
 [[tool.mypy.overrides]]
-module = "bs4.*,markdownify.*"
+module = "bs4.*,markdownify.*,typing.*"
 ignore_missing_imports = true
