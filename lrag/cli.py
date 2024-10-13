@@ -29,7 +29,7 @@ def gather_content_from_files(
         for fi_path in fi_paths:
             content = get_file_content(fi_path)
             if content is not None:
-                fis.append(File(path=fi_path, file_content=content))
+                fis.append(File(folder=folder, path=fi_path, file_content=content))
 
         print(f"found {len(list(fis))} files for {glob}, {len(fis)} files processed")
     return fis
@@ -48,9 +48,8 @@ def create_chunks_from_file_contents(
 
     chunks: list[Chunk] = []
     for fi in fis:
-        chunks.extend(
-            chunk_strategy_dispatch[chunk_strategy](fi, chunk_size, overlap_pct)
-        )
+        chunk_strategy_fn = chunk_strategy_dispatch[chunk_strategy]
+        chunks.extend(chunk_strategy_fn(fi, chunk_size, overlap_pct))
     print(f"created {len(chunks)} chunks from {len(fis)} files using {chunk_strategy=}")
     return chunks
 
@@ -83,8 +82,20 @@ def ingest() -> None:
     # create chunks from file content
     chunks = create_chunks_from_file_contents(fis, chunk_strategy, chunk_size, overlap)
 
+    def append_chunk_extensions(
+        chunks: list[Chunk], chunk_extensions: list[str], **kwargs
+    ) -> list[Chunk]:
+        chunk_extensions_dispatch = {
+            "file_path": lrag.chunking.prepend_file_path_to_chunk,
+        }
+
+        for chunk_extension in chunk_extensions:
+            chunk_extension_fn = chunk_extensions_dispatch[chunk_extension]
+            for chunk in chunks:
+                chunk = chunk_extension_fn(chunk)
+
     # add extensions to chunks - context, file path etc
-    # chunks = append_chunk_extensions(chunks, chunk_extensions)
+    append_chunk_extensions(chunks, chunk_extensions)
 
     # # insert into database
     lrag.db.insert_chunks(db_fi, chunks)
