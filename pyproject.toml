@@ -16,6 +16,7 @@ dependencies = [
 
 [project.scripts]
 ingest = "lrag:ingest.ingest"
+query = "lrag:query.query"
 
 [build-system]
 requires = ["hatchling"]

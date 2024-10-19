@@ -83,6 +83,7 @@ def append_chunk_extensions(
     nargs=-1,
     required=True,
     callback=lambda ctx, param, value: (pathlib.Path(p) for p in value),
+    help="TODO - multiple values",
 )
 @click.option(
     "--log-level",
@@ -95,7 +96,7 @@ def append_chunk_extensions(
     type=str,
     multiple=True,
     default=["*.md"],
-    help='File extension(s) to include. Should be quoted to avoid shell expansion of the wildcard.  Usage `--glob "*.md" --glob "*.txt"`.',
+    help='File extension(s) to include. Should be quoted to avoid shell expansion of the wildcard.  Can supply multiple values with `--glob "*.md" --glob "*.txt"`.',
 )
 @click.option(
     "--db",
@@ -115,6 +116,7 @@ def append_chunk_extensions(
     "--chunk-strategy",
     type=click.Choice(typing.get_args(ChunkStrategies)),
     default=defaults.chunk_strategy,
+    help="TODO",
 )
 @click.option(
     "--chunk-size", default=4000, type=int, help="Size of the chunks to embed."
@@ -132,6 +134,7 @@ def append_chunk_extensions(
     type=click.Choice(typing.get_args(ChunkExtensions)),
     default=defaults.chunk_extensions,
     multiple=True,
+    help="TODO",
 )
 def ingest(
     folders: list[pathlib.Path],

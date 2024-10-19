@@ -28,8 +28,8 @@ def prepend_file_path_to_chunk(chunk: Chunk) -> None:
     chunk.chunk_content = f"file: {chunk.file.folder.name}/{chunk.file.path.relative_to(chunk.file.folder)}, chunk: {chunk.chunk_content}"
 
 
-def split_markdown_into_chunks(
-    text: str, chunk_size: int, overlap_pct: float
+def chunk_markdown_by_markdown_object(
+    text: str, n_elements_window: int = 1, n_paragraph_window: int = 1
 ) -> list[str]:
     markdown_parser = mistune.create_markdown()
 
@@ -53,14 +53,18 @@ def split_markdown_into_chunks(
         if n > 0:
             # here we only include the last html element from the previous paragraph
             # we do not include the entire last paragraph
-            chunk.append("".join(paragraphs[n - 1][-1:]))
+            chunk.append(
+                "".join(paragraphs[n - n_paragraph_window][-n_elements_window:])
+            )
 
         chunk.append("".join(p))
 
         if n < len(paragraphs) - 1:
             # here we only include the first html element from the next paragraph
             # we do not include the entire next paragraph
-            chunk.append("".join(paragraphs[n + 1][:1]))
+            chunk.append(
+                "".join(paragraphs[n + n_paragraph_window][:n_elements_window])
+            )
 
         chunks.append("".join(chunk))
 

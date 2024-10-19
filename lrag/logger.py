@@ -3,7 +3,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 
 
-def setup_logging(log_level: str) -> None:
+def setup_logging(log_level: str) -> loguru._logger.Logger:
     # setup logging
     loguru.logger.remove()
     loguru.logger.add(
@@ -18,3 +18,4 @@ def setup_logging(log_level: str) -> None:
         level=log_level,
         format="{message}",
     )
+    return loguru.logger

@@ -1,8 +1,8 @@
 import click
+import core
 import ollama
 import rich
 
-import core
 import ext
 
 
@@ -29,6 +29,7 @@ def query_database(
 
     docs = [row[2] for row in rows]
     import collections
+
     print(f"{len(rows)} chunks in document_fis: {collections.Counter(docs)}")
 
     prompt = f"You are a RAG agent, answering queries from users. You will be given a query to answer, and a number of chunks of context. These chunks of context are found using vector similarity between the query and a document database. Please answer the following query:\n\n<query>{query}</query>\n\nChunks start:"
