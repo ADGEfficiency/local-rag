@@ -11,6 +11,8 @@ from lrag.config import LogLevel, defaults
 
 logger = loguru.logger
 
+cli = typer.Typer(rich_markup_mode=None)
+
 
 def get_document_for_query(
     db_fi: str, query: str, embedding_model: str, n_chunks: int
@@ -30,6 +32,7 @@ def get_document_for_query(
         """,
         [ollama.embeddings(model=embedding_model, prompt=query)["embedding"]],
     )
+    assert docs.description is not None
     descriptions = [d[0] for d in docs.description]
 
     mapped = collections.defaultdict(list)
@@ -72,10 +75,7 @@ def generate_response(prompt: str, llm_model: str) -> str:
     return str(response)
 
 
-app = typer.Typer()
-
-
-@app.command()
+@cli.command()
 def query(
     query: Annotated[str, typer.Argument()],
     log_level: Annotated[LogLevel, typer.Option()] = LogLevel.INFO,
@@ -111,7 +111,6 @@ def query(
     # would include the raw query and rephrased query??? not sure
 
     # get documents relevant for this query
-
     # TODO - should this return `chunks` - chunk dataclass objects?  yes
     docs = get_document_for_query(db_fi, query, embedding_model, n_chunks)
     logger.info(f"got {len(docs)} documents for {query=}")

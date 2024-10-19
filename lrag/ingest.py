@@ -7,7 +7,7 @@ import lrag
 from lrag.config import ChunkExtensions, ChunkStrategies, LogLevel, defaults
 from lrag.models import Chunk, File
 
-app = typer.Typer()
+cli = typer.Typer(rich_markup_mode=None)
 
 
 def get_file_content(fi: pathlib.Path) -> str | None:
@@ -80,81 +80,7 @@ def append_chunk_extensions(
         print(f"ran {chunk_extension} on {len(chunks)} chunks")
 
 
-# @click.command()
-# @click.argument(
-#     "folders",
-#     type=click.Path(exists=True),
-#     nargs=-1,
-#     required=True,
-#     callback=lambda ctx, param, value: (pathlib.Path(p) for p in value),
-#     # help="TODO - multiple values",
-# )
-# @click.option(
-#     "--log-level",
-#     default="INFO",
-#     type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]),
-# )
-# @click.option(
-#     "--glob",
-#     "globs",
-#     type=str,
-#     multiple=True,
-#     default=["*.md"],
-#     help='File extension(s) to include. Should be quoted to avoid shell expansion of the wildcard.  Can supply multiple values with `--glob "*.md" --glob "*.txt"`.',
-# )
-# @click.option(
-#     "--db",
-#     "db_fi",
-#     type=str,
-#     default="db.duckdb",
-#     help="DuckDB database file.",
-# )
-# @click.option(
-#     "--embedding-model",
-#     default=defaults.embedding_model,
-#     type=str,
-#     help="Model to embed the query.  Should be the same model as used to embed the query.",
-# )
-# @click.option("--reingest-files/--no-reingest-files", type=bool, default=True)
-# @click.option(
-#     "--chunk-strategy",
-#     type=click.Choice(typing.get_args(ChunkStrategies)),
-#     default=defaults.chunk_strategy,
-#     help="TODO",
-# )
-# @click.option(
-#     "--chunk-size", default=4000, type=int, help="Size of the chunks to embed."
-# )
-# @click.option(
-#     "--overlap",
-#     "overlap_pct",
-#     default=0.15,
-#     type=float,
-#     help="Percentage overlap between chunks.",
-# )
-# @click.option(
-#     "--chunk-extension",
-#     "chunk_extensions",
-#     type=click.Choice(typing.get_args(ChunkExtensions)),
-#     default=defaults.chunk_extensions,
-#     multiple=True,
-#     help="TODO",
-# )
-# def ingest(
-#     folders: list[pathlib.Path],
-#     log_level: str,
-#     globs: tuple[str],
-#     db_fi: str,
-#     embedding_model: str,
-#     reingest_files: bool,
-#     chunk_strategy: ChunkStrategies,
-#     chunk_size: int,
-#     overlap_pct: float,
-#     chunk_extensions: tuple[ChunkExtensions, ...],
-# ) -> None:
-
-
-@app.command()
+@cli.command()
 def ingest(
     folders: Annotated[
         list[pathlib.Path],

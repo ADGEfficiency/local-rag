@@ -23,9 +23,9 @@ static: setup-test
 	mypy *.py
 
 help:
-	python ingest.py --help
+	uv run ingest --help
 	@echo ""
-	python query.py --help
+	uv run query --help
 
 lock:
 	uv lock

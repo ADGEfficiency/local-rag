@@ -31,37 +31,61 @@ $ make help
 ```
 
 ```
-python ingest.py --help
-Usage: ingest.py [OPTIONS] [FOLDERS]...
+uv run ingest --help
+Usage: ingest [OPTIONS] FOLDERS...
+
+Arguments:
+  FOLDERS...  Folders to process. Multiple folders can be specified.
+              [required]
 
 Options:
-  --chunk-size INTEGER     Size of the chunks to embed.
-  --overlap FLOAT          Percentage overlap between chunks.
-  --db TEXT                DuckDB database file.
-  --glob TEXT              File extension(s) to include. Should be quoted to
-                           avoid shell expansion of the wildcard.  Usage
-                           `--glob "*.md" --glob "*.txt"`.
-  --embedding-model TEXT   Model to embed the query.  Should be the same model
-                           as used to embed the query.
-  --embedding-dim INTEGER  Dimension of the embeddings.  Should match the
-                           embedding model.
-  --llm TEXT               The LLM model. Only used for propsitional chunking
-                           of topics.
-  --help                   Show this message and exit.
+  --log-level [DEBUG|INFO|WARNING|ERROR|CRITICAL]
+                                  [default: INFO]
+  --glob TEXT                     File extension(s) to include. Can supply
+                                  multiple values.  [default: *.md]
+  --db TEXT                       DuckDB database file.  [default: db.duckdb]
+  --embedding TEXT                Model to embed the query. Should be the same
+                                  model as used to embed the query.  [default:
+                                  snowflake-arctic-embed:335m]
+  --reingest-files / --no-reingest-files
+                                  Whether to reingest files.  [default:
+                                  reingest-files]
+  --chunk-strategy [characters|markdown-objects]
+                                  Strategy for chunking the text.  [default:
+                                  characters]
+  --chunk-size INTEGER            Size of the chunks to embed.  [default:
+                                  4000]
+  --overlap FLOAT                 Percentage overlap between chunks.
+                                  [default: 0.15]
+  --chunk-extensions <CHOICE>     Extensions for chunking
+  --install-completion            Install completion for the current shell.
+  --show-completion               Show completion for the current shell, to
+                                  copy it or customize the installation.
+  --help                          Show this message and exit.
 
-python query.py --help
-Usage: query.py [OPTIONS] QUERY
+uv run query --help
+Usage: query [OPTIONS] QUERY
+
+Arguments:
+  QUERY  [required]
 
 Options:
-  --embedding-model TEXT   Model to embed the query.  Should be the same model
-                           as used to create the chunks in the database.
-  --embedding-dim INTEGER  Dimension of the embeddings.  Should match the
-                           embedding model.
-  --llm TEXT               The LLM model.
-  --chunks INTEGER         Number of chunks to use in the RAG prompt.
-  --db PATH                DuckDB database file.
-  --raw / --no-raw         Whether to query the raw LLM after the RAG LLM.
-  --help                   Show this message and exit.
+  --log-level [DEBUG|INFO|WARNING|ERROR|CRITICAL]
+                                  [default: INFO]
+  --embedding TEXT                Model to embed the query. Should be the same
+                                  model as used to embed the query.  [default:
+                                  snowflake-arctic-embed:335m]
+  --llm TEXT                      Model used to generate the response.
+                                  [default: llama3.1:8b]
+  --chunks INTEGER                Number of chunks to use in the RAG prompt.
+                                  [default: 10]
+  --db TEXT                       DuckDB database file.  [default: db.duckdb]
+  --raw                           Whether to query the raw LLM after the RAG
+                                  LLM.
+  --install-completion            Install completion for the current shell.
+  --show-completion               Show completion for the current shell, to
+                                  copy it or customize the installation.
+  --help                          Show this message and exit.
 ```
 
 ## Config Explanation
