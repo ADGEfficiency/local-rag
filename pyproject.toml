@@ -11,7 +11,7 @@ dependencies = [
     "markdownify",
     "mistune",
     "ollama",
-    "rich"
+    "rich",
 ]
 
 [project.scripts]
