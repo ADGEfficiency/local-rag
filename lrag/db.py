@@ -16,6 +16,7 @@ def connect_db(db_fi: str) -> duckdb.DuckDBPyConnection:
 
 
 def setup_db(db_fi: str, embedding_model: str) -> None:
+    ollama.pull(embedding_model)
     embedding_dim = len(
         ollama.embeddings(model=embedding_model, prompt="a")["embedding"]
     )
@@ -55,7 +56,7 @@ def get_previous_ingested_files(db_fi: str, reingest_files: bool) -> set[pathlib
 
 def insert_chunks(db_fi: str, chunks: list[Chunk], embedding_model: str) -> None:
     con = connect_db(db_fi)
-
+    ollama.pull(embedding_model)
     to_insert: list[tuple[str, str, str]] = []
     for chunk in chunks[:10]:
         logger.debug(f"embedding {chunk}")
