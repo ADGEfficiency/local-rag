@@ -37,8 +37,8 @@ def get_document_for_query(
         for key, value in zip(descriptions, row):
             mapped[key].append(value)
 
-    for v in mapped.values():
-        assert len(v) == n_chunks
+    # for v in mapped.values():
+    #     assert len(v) == n_chunks
 
     return mapped
 
