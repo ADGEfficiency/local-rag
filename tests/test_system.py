@@ -8,6 +8,7 @@ import pytest
 from click.testing import CliRunner
 
 from lrag.ingest import ingest as ingest_cli
+from lrag.query import query as query_cli
 
 TEST_DATA = "adam green, bob blue, charlie red"
 
@@ -66,20 +67,18 @@ def test_ingest_and_query(
     # check embedding dimension
     assert len(result[0][2]) == 384
 
-    # query_result = runner.invoke(
-    #     query_cli,
-    #     [
-    #         "what is adam's last name?",
-    #         "--db",
-    #         db_path,
-    #         "--embedding-model",
-    #         "all-minilm:22m",
-    #         "--embedding-dim",
-    #         "384",
-    #         "--llm",
-    #         "smollm",
-    #     ],
-    # )
-    # print(f"{query_result.output=}")
-    # assert query_result.exit_code == 0
-    # assert "green" in query_result.output.lower()
+    query_result = runner.invoke(
+        query_cli,
+        [
+            "what is adam's last name?",
+            "--db",
+            db_path,
+            "--embedding-model",
+            "all-minilm:22m",
+            "--llm",
+            "smollm",
+        ],
+    )
+    print(f"{query_result.output=}")
+    assert query_result.exit_code == 0
+    assert "green" in query_result.output.lower()

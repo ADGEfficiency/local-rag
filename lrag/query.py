@@ -1,9 +1,13 @@
 import collections
 
+import click
+import loguru
 import ollama
 
 import lrag
 from lrag.config import ChunkExtensions, ChunkStrategies, defaults
+
+logger = loguru.logger
 
 
 def get_document_for_query(
@@ -36,7 +40,69 @@ def get_document_for_query(
     return mapped
 
 
-def query() -> None:
+def synthesize_prompt(query: str, docs: dict[str, list]) -> str:
+    prompt = f"You are a RAG agent, answering queries from users. You will be given a query to answer, and a number of chunks of context. These chunks of context are found using vector similarity between the query and a document database. Please answer the following query:\n\n<query>{query}</query>\n\nChunks start:"
+
+    for chunk, dist, document_fi in zip(
+        docs["chunk"], docs["dist"], docs["document_fi"]
+    ):
+        prompt += f"<chunk>{chunk}</chunk>"
+
+        logger.debug(f"{document_fi=}, {dist=}, {chunk=}")
+    prompt += f"Please answer the following query:\n\n<query>{query}</query>"
+    return prompt
+
+
+def generate_response(prompt: str, llm_model: str) -> str:
+    logger.debug(f"start generating response...")
+    import time
+
+    tic = time.time()
+    options = ollama.Options(
+        num_predict=defaults.max_tokens,
+        temperature=defaults.temperature,
+    )
+    ollama.pull(llm_model)
+    response = ollama.generate(model=llm_model, prompt=prompt, options=options)[
+        "response"
+    ]
+    logger.debug(f"generated response in {time.time() - tic:.2f}s")
+    return str(response)
+
+
+@click.command()
+@click.argument("query", type=str)
+@click.option(
+    "--embedding-model",
+    default=defaults.embedding_model,
+    type=str,
+    help="Model to embed the query.  Should be the same model as used to create the chunks in the database.",
+)
+@click.option(
+    "--llm",
+    "llm_model",
+    default=defaults.llm_model,
+    type=str,
+    help="The LLM model.",
+)
+@click.option(
+    "--chunks", default=10, type=int, help="Number of chunks to use in the RAG prompt."
+)
+@click.option(
+    "--db",
+    "db_fi",
+    type=str,
+    default="db.duckdb",
+    help="DuckDB database file.",
+)
+@click.option(
+    "--raw/--no-raw",
+    default=True,
+    help="Whether to query the raw LLM after the RAG LLM.",
+)
+def query(
+    query: str, embedding_model: str, llm_model: str, chunks: int, db_fi: str, raw: bool
+) -> None:
     # cli
     log_level = "DEBUG"
     n_chunks = 10
@@ -56,15 +122,23 @@ def query() -> None:
 
     # TODO - should this return `chunks` - chunk dataclass objects?  yes
     docs = get_document_for_query(db_fi, query, embedding_model, n_chunks)
+    logger.info(f"got {len(docs)} documents for {query=}")
     logger.debug(f"document_fis: {set(docs['document_fi'])}")
 
     # synthesise a response using the documents with an LLM
-    prompt = f"You are a RAG agent, answering queries from users. You will be given a query to answer, and a number of chunks of context. These chunks of context are found using vector similarity between the query and a document database. Please answer the following query:\n\n<query>{query}</query>\n\nChunks start:"
+    # this includes inserting chunks & appending prompt again
+    prompt = synthesize_prompt(query, docs)
 
-    # TODO insert the chunks into the prompt
-
-    # TODO add the query again
+    # generate a response with the LLM
+    response = generate_response(prompt, llm_model)
 
     # run the query versus the LLM
+    logger.info(f"generated {response=}")
 
     # optionally run the raw_query without any RAG context
+    generate_with_no_context = False
+    if generate_with_no_context:
+        response = generate_response(query, llm_model)
+        logger.info(f"generated {response=}")
+
+    # TODO - dump output to a debug text markdown file

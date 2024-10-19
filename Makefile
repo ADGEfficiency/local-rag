@@ -13,10 +13,10 @@ setup-macos: setup-python
 	brew install duckdb
 
 setup-test: setup-python
-	uv pip install -r pyproject.toml --extra test $(UV_ARGS)
+	uv pip install -r pyproject.toml $(UV_ARGS) --extra test
+	uv pip install -e .
 
 test: setup-test
-	pytest tests.py -s
 	uv run pytest tests
 
 static: setup-test

@@ -13,7 +13,7 @@ def setup_logging(log_level: str) -> loguru._logger.Logger:
             tracebacks_show_locals=True,
             tracebacks_extra_lines=2,
             tracebacks_theme="monokai",
-            show_path=False,
+            show_path=True,
         ),
         level=log_level,
         format="{message}",

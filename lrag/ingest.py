@@ -83,7 +83,7 @@ def append_chunk_extensions(
     nargs=-1,
     required=True,
     callback=lambda ctx, param, value: (pathlib.Path(p) for p in value),
-    help="TODO - multiple values",
+    # help="TODO - multiple values",
 )
 @click.option(
     "--log-level",
