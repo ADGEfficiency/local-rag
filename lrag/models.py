@@ -2,7 +2,6 @@ import dataclasses
 import pathlib
 
 
-
 @dataclasses.dataclass
 class File:
     folder: pathlib.Path

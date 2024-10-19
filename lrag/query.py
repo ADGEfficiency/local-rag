@@ -106,9 +106,7 @@ def query(
 ) -> None:
     # setup logging
     logger = lrag.logger.setup_logging(log_level)
-
-    # TODO - could rephrase this query with an LLM - query rephrasiing / query rewriting (this is an extension)
-    # would include the raw query and rephrased query??? not sure
+    # TODO - query rephrasing
 
     # get documents relevant for this query
     # TODO - should this return `chunks` - chunk dataclass objects?  yes
