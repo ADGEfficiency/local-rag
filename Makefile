@@ -4,6 +4,7 @@ UV_ARGS ?=--system
 setup-python:
 	pip install uv
 	uv pip install -r pyproject.toml $(UV_ARGS) --all-extras
+	uv pip install -e . $(UV_ARGS)
 
 setup-linux: setup-python
 	wget https://github.com/duckdb/duckdb/releases/download/v1.1.1/duckdb_cli-linux-amd64.zip
@@ -14,7 +15,6 @@ setup-macos: setup-python
 
 setup-test: setup-python
 	uv pip install -r pyproject.toml $(UV_ARGS) --extra test
-	uv pip install -e . $(UV_ARGS)
 
 test: setup-test
 	uv run pytest tests

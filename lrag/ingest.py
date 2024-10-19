@@ -1,11 +1,13 @@
 import pathlib
-import typing
 
-import click
+import typer
+from typing_extensions import Annotated
 
 import lrag
-from lrag.config import ChunkExtensions, ChunkStrategies, defaults
+from lrag.config import ChunkExtensions, ChunkStrategies, LogLevel, defaults
 from lrag.models import Chunk, File
+
+app = typer.Typer()
 
 
 def get_file_content(fi: pathlib.Path) -> str | None:
@@ -76,80 +78,133 @@ def append_chunk_extensions(
         print(f"ran {chunk_extension} on {len(chunks)} chunks")
 
 
-@click.command()
-@click.argument(
-    "folders",
-    type=click.Path(exists=True),
-    nargs=-1,
-    required=True,
-    callback=lambda ctx, param, value: (pathlib.Path(p) for p in value),
-    # help="TODO - multiple values",
-)
-@click.option(
-    "--log-level",
-    default="INFO",
-    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]),
-)
-@click.option(
-    "--glob",
-    "globs",
-    type=str,
-    multiple=True,
-    default=["*.md"],
-    help='File extension(s) to include. Should be quoted to avoid shell expansion of the wildcard.  Can supply multiple values with `--glob "*.md" --glob "*.txt"`.',
-)
-@click.option(
-    "--db",
-    "db_fi",
-    type=str,
-    default="db.duckdb",
-    help="DuckDB database file.",
-)
-@click.option(
-    "--embedding-model",
-    default=defaults.embedding_model,
-    type=str,
-    help="Model to embed the query.  Should be the same model as used to embed the query.",
-)
-@click.option("--reingest-files/--no-reingest-files", type=bool, default=True)
-@click.option(
-    "--chunk-strategy",
-    type=click.Choice(typing.get_args(ChunkStrategies)),
-    default=defaults.chunk_strategy,
-    help="TODO",
-)
-@click.option(
-    "--chunk-size", default=4000, type=int, help="Size of the chunks to embed."
-)
-@click.option(
-    "--overlap",
-    "overlap_pct",
-    default=0.15,
-    type=float,
-    help="Percentage overlap between chunks.",
-)
-@click.option(
-    "--chunk-extension",
-    "chunk_extensions",
-    type=click.Choice(typing.get_args(ChunkExtensions)),
-    default=defaults.chunk_extensions,
-    multiple=True,
-    help="TODO",
-)
+# @click.command()
+# @click.argument(
+#     "folders",
+#     type=click.Path(exists=True),
+#     nargs=-1,
+#     required=True,
+#     callback=lambda ctx, param, value: (pathlib.Path(p) for p in value),
+#     # help="TODO - multiple values",
+# )
+# @click.option(
+#     "--log-level",
+#     default="INFO",
+#     type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]),
+# )
+# @click.option(
+#     "--glob",
+#     "globs",
+#     type=str,
+#     multiple=True,
+#     default=["*.md"],
+#     help='File extension(s) to include. Should be quoted to avoid shell expansion of the wildcard.  Can supply multiple values with `--glob "*.md" --glob "*.txt"`.',
+# )
+# @click.option(
+#     "--db",
+#     "db_fi",
+#     type=str,
+#     default="db.duckdb",
+#     help="DuckDB database file.",
+# )
+# @click.option(
+#     "--embedding-model",
+#     default=defaults.embedding_model,
+#     type=str,
+#     help="Model to embed the query.  Should be the same model as used to embed the query.",
+# )
+# @click.option("--reingest-files/--no-reingest-files", type=bool, default=True)
+# @click.option(
+#     "--chunk-strategy",
+#     type=click.Choice(typing.get_args(ChunkStrategies)),
+#     default=defaults.chunk_strategy,
+#     help="TODO",
+# )
+# @click.option(
+#     "--chunk-size", default=4000, type=int, help="Size of the chunks to embed."
+# )
+# @click.option(
+#     "--overlap",
+#     "overlap_pct",
+#     default=0.15,
+#     type=float,
+#     help="Percentage overlap between chunks.",
+# )
+# @click.option(
+#     "--chunk-extension",
+#     "chunk_extensions",
+#     type=click.Choice(typing.get_args(ChunkExtensions)),
+#     default=defaults.chunk_extensions,
+#     multiple=True,
+#     help="TODO",
+# )
+# def ingest(
+#     folders: list[pathlib.Path],
+#     log_level: str,
+#     globs: tuple[str],
+#     db_fi: str,
+#     embedding_model: str,
+#     reingest_files: bool,
+#     chunk_strategy: ChunkStrategies,
+#     chunk_size: int,
+#     overlap_pct: float,
+#     chunk_extensions: tuple[ChunkExtensions, ...],
+# ) -> None:
+
+
+@app.command()
 def ingest(
-    folders: list[pathlib.Path],
-    log_level: str,
-    globs: tuple[str],
-    db_fi: str,
-    embedding_model: str,
-    reingest_files: bool,
-    chunk_strategy: ChunkStrategies,
-    chunk_size: int,
-    overlap_pct: float,
-    chunk_extensions: tuple[ChunkExtensions, ...],
+    folders: Annotated[
+        list[pathlib.Path],
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            help="Folders to process. Multiple folders can be specified.",
+        ),
+    ],
+    log_level: Annotated[LogLevel, typer.Option()] = LogLevel.INFO,
+    globs: Annotated[
+        list[str],
+        typer.Option(
+            "--glob",
+            help="File extension(s) to include. Can supply multiple values.",
+        ),
+    ] = [
+        "*.md",
+    ],
+    db_fi: Annotated[
+        str, typer.Option("--db", help="DuckDB database file.")
+    ] = "db.duckdb",
+    embedding_model: Annotated[
+        str,
+        typer.Option(
+            help="Model to embed the query. Should be the same model as used to embed the query.",
+        ),
+    ] = defaults.embedding_model,
+    reingest_files: Annotated[
+        bool, typer.Option(help="Whether to reingest files.")
+    ] = True,
+    chunk_strategy: Annotated[
+        ChunkStrategies, typer.Option(help="Strategy for chunking the text.")
+    ] = defaults.chunk_strategy,
+    chunk_size: Annotated[
+        int, typer.Option(help="Size of the chunks to embed.")
+    ] = 4000,
+    overlap_pct: Annotated[
+        float, typer.Option("--overlap", help="Percentage overlap between chunks.")
+    ] = 0.15,
+    chunk_extensions: Annotated[
+        tuple[ChunkExtensions] | None,
+        typer.Option(
+            help="Extensions for chunking",
+            callback=lambda v: tuple(v) if v is not None else (),
+        ),
+    ] = None,
 ) -> None:
     # setup logging
-    lrag.logger.setup_logging(log_level)
+    lrag.logger.setup_logging(log_level.value)
 
     # setup the duckdb database
     lrag.db.setup_db(db_fi, embedding_model)
@@ -169,6 +224,7 @@ def ingest(
     )
 
     # add extensions to chunks - context, file path etc
+    assert chunk_extensions is not None
     append_chunk_extensions(chunks, chunk_extensions)
 
     # insert into database

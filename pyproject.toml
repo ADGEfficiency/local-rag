@@ -12,11 +12,13 @@ dependencies = [
     "mistune",
     "ollama",
     "rich",
+    "typer>=0.12.5",
 ]
 
 [project.scripts]
-ingest = "lrag:ingest.ingest"
+ingest = "lrag:ingest.app"
 query = "lrag:query.query"
+cli = "lrag:cli.app"
 
 [build-system]
 requires = ["hatchling"]
