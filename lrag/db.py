@@ -24,7 +24,9 @@ def setup_db(db_fi: str, embedding_model: str) -> None:
     con = connect_db(db_fi)
     con.execute(
         f"""
+        CREATE SEQUENCE IF NOT EXISTS seq_document_id START 1;
         CREATE TABLE IF NOT EXISTS embeddings (
+            document_id INTEGER PRIMARY KEY DEFAULT nextval('seq_document_id'),
             document_fi TEXT,
             chunk TEXT,
             vector FLOAT[{embedding_dim}],
