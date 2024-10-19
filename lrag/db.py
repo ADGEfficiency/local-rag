@@ -25,6 +25,7 @@ def setup_db(db_fi: str, embedding_model: str) -> None:
     con.execute(
         f"""
         CREATE TABLE IF NOT EXISTS embeddings (
+            document_id INTEGER PRIMARY KEY DEFAULT nextval
             document_fi TEXT,
             chunk TEXT,
             vector FLOAT[{embedding_dim}],
