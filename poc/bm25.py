@@ -22,9 +22,9 @@ docs = [
 for doc in docs:
     con.execute("INSERT INTO docs VALUES (DEFAULT, ?)", [doc])
 
-con.execute("""
-    PRAGMA create_fts_index('docs', 'document_id', 'text_content', overwrite=true);
-""")
+con.execute(
+    "PRAGMA create_fts_index('docs', 'document_id', 'text_content', overwrite=true, stemmer='english');"
+)
 
 print(con.execute("SELECT * FROM docs").fetchall())
 print(
