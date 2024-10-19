@@ -7,8 +7,8 @@ import duckdb
 import pytest
 from typer.testing import CliRunner
 
-from lrag.ingest import app as ingest_cli
-from lrag.query import app as query_cli
+from lrag.ingest import cli as ingest_cli
+from lrag.query import cli as query_cli
 
 TEST_DATA = "adam green, bob blue, charlie red"
 
