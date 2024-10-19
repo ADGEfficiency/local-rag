@@ -14,7 +14,7 @@ setup-macos: setup-python
 
 setup-test: setup-python
 	uv pip install -r pyproject.toml $(UV_ARGS) --extra test
-	uv pip install -e .
+	uv pip install -e . $(UV_ARGS)
 
 test: setup-test
 	uv run pytest tests
