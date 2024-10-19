@@ -5,12 +5,12 @@ import typing
 
 import duckdb
 import pytest
-from click.testing import CliRunner
+from typer.testing import CliRunner
 
-from ingest import main as ingest_cli
-from query import main as query_cli
+from lrag.ingest import cli as ingest_cli
+from lrag.query import cli as query_cli
 
-DATA = "adam green, bob blue, charlie red"
+TEST_DATA = "adam green, bob blue, charlie red"
 
 
 @pytest.fixture
@@ -20,19 +20,19 @@ def temp_dir() -> typing.Generator[str, None, None]:
 
 
 @pytest.fixture
-def dummy_data(temp_dir: str) -> pathlib.Path:
+def dummy_md_fi(temp_dir: str) -> pathlib.Path:
     file_path = pathlib.Path(temp_dir) / "dummy.md"
-    file_path.write_text(DATA)
+    file_path.write_text(TEST_DATA)
     return file_path
 
 
 def test_ingest_and_query(
     temp_dir: str,
-    dummy_data: pathlib.Path,
+    dummy_md_fi: pathlib.Path,
     chunk_size: int = 10,
 ) -> None:
     runner = CliRunner()
-    db_path = os.path.join(temp_dir, "test_db2.duckdb")
+    db_path = os.path.join(temp_dir, "test.duckdb")
 
     ingest_result = runner.invoke(
         ingest_cli,
@@ -46,22 +46,25 @@ def test_ingest_and_query(
             db_path,
             "--glob",
             "*.md",
-            "--embedding-model",
+            "--embedding",
             "all-minilm:22m",
-            "--embedding-dim",
-            "384",
         ],
     )
     print(f"{ingest_result.stdout=}")
     assert ingest_result.exit_code == 0
 
-    con = duckdb.connect(db_path)
-    result = con.execute("SELECT * FROM embeddings").fetchall()
-    con.close()
+    with duckdb.connect(db_path) as con:
+        result = con.execute(
+            "SELECT document_fi, chunk, vector FROM embeddings"
+        ).fetchall()
 
-    assert len(result) > 0
-    assert result[0][0] == str(dummy_data)
+    # check expected number of chunks
+    assert len(result) == 4
+    # check file name
+    assert os.path.samefile(result[0][0], str(dummy_md_fi))
+    # check chunk
     assert "chunk: adam green" in result[0][1]
+    # check embedding dimension
     assert len(result[0][2]) == 384
 
     query_result = runner.invoke(
@@ -70,10 +73,8 @@ def test_ingest_and_query(
             "what is adam's last name?",
             "--db",
             db_path,
-            "--embedding-model",
+            "--embedding",
             "all-minilm:22m",
-            "--embedding-dim",
-            "384",
             "--llm",
             "smollm",
         ],
