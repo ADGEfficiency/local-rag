@@ -37,7 +37,7 @@ def setup_db(db_fi: str, embedding_model: str) -> None:
 
 def get_previous_ingested_files(db_fi: str, reingest_files: bool) -> set[pathlib.Path]:
     if reingest_files is True:
-        print(f"reingesting all files")
+        print("reingesting all files")
         return set()
 
     con = connect_db(db_fi)

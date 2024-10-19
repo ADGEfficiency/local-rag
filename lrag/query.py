@@ -1,11 +1,12 @@
 import collections
 
-import click
 import loguru
 import ollama
+import typer
+from typing_extensions import Annotated
 
 import lrag
-from lrag.config import ChunkExtensions, ChunkStrategies, defaults
+from lrag.config import defaults
 
 logger = loguru.logger
 
@@ -54,7 +55,7 @@ def synthesize_prompt(query: str, docs: dict[str, list]) -> str:
 
 
 def generate_response(prompt: str, llm_model: str) -> str:
-    logger.debug(f"start generating response...")
+    logger.debug("start generating response...")
     import time
 
     tic = time.time()
@@ -70,38 +71,36 @@ def generate_response(prompt: str, llm_model: str) -> str:
     return str(response)
 
 
-@click.command()
-@click.argument("query", type=str)
-@click.option(
-    "--embedding-model",
-    default=defaults.embedding_model,
-    type=str,
-    help="Model to embed the query.  Should be the same model as used to create the chunks in the database.",
-)
-@click.option(
-    "--llm",
-    "llm_model",
-    default=defaults.llm_model,
-    type=str,
-    help="The LLM model.",
-)
-@click.option(
-    "--chunks", default=10, type=int, help="Number of chunks to use in the RAG prompt."
-)
-@click.option(
-    "--db",
-    "db_fi",
-    type=str,
-    default="db.duckdb",
-    help="DuckDB database file.",
-)
-@click.option(
-    "--raw/--no-raw",
-    default=True,
-    help="Whether to query the raw LLM after the RAG LLM.",
-)
+app = typer.Typer()
+
+
+@app.command()
 def query(
-    query: str, embedding_model: str, llm_model: str, chunks: int, db_fi: str, raw: bool
+    query: Annotated[str, typer.Argument()],
+    embedding_model: Annotated[
+        str,
+        typer.Option(
+            "--embedding",
+            help="Model to embed the query. Should be the same model as used to embed the query.",
+        ),
+    ] = defaults.embedding_model,
+    llm_model: Annotated[
+        str,
+        typer.Option(
+            "--llm",
+            help="Model used to generate the response.",
+        ),
+    ] = defaults.embedding_model,
+    n_chunks: Annotated[
+        int, typer.Option("--chunks", help="Number of chunks to use in the RAG prompt.")
+    ] = defaults.n_chunks,
+    db_fi: Annotated[
+        str, typer.Option("--db", help="DuckDB database file.")
+    ] = defaults.db_fi,
+    generate_response_with_raw_query: Annotated[
+        bool,
+        typer.Option("--raw", help="Whether to query the raw LLM after the RAG LLM."),
+    ] = defaults.generate_response_with_raw_query,
 ) -> None:
     # cli
     log_level = "DEBUG"

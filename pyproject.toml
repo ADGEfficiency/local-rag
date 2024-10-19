@@ -17,7 +17,7 @@ dependencies = [
 
 [project.scripts]
 ingest = "lrag:ingest.app"
-query = "lrag:query.query"
+query = "lrag:query.app"
 cli = "lrag:cli.app"
 
 [build-system]

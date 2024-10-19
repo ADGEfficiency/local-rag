@@ -19,7 +19,7 @@ def get_file_content(fi: pathlib.Path) -> str | None:
 
 def get_content_from_files(
     folders: list[pathlib.Path],
-    globs: tuple[str],
+    globs: list[str],
     previously_ingested_files: set[pathlib.Path] | None = None,
 ) -> list[File]:
     fis: list[File] = []
@@ -52,7 +52,7 @@ def create_chunks_from_file_contents(
 ) -> list[Chunk]:
     chunk_strategy_dispatch = {
         "characters": lrag.chunking.chunk_text_by_character,
-        # "markdown-objects": None,
+        # TODO - "markdown-objects": None,
     }
 
     chunks: list[Chunk] = []
@@ -69,6 +69,8 @@ def append_chunk_extensions(
 ) -> None:
     chunk_extensions_dispatch = {
         "file_path": lrag.chunking.prepend_file_path_to_chunk,
+        # TODO - contextual rag
+        # TODO - inject topics
     }
 
     for chunk_extension in chunk_extensions:
@@ -176,10 +178,11 @@ def ingest(
     ],
     db_fi: Annotated[
         str, typer.Option("--db", help="DuckDB database file.")
-    ] = "db.duckdb",
+    ] = defaults.db_fi,
     embedding_model: Annotated[
         str,
         typer.Option(
+            "--embedding",
             help="Model to embed the query. Should be the same model as used to embed the query.",
         ),
     ] = defaults.embedding_model,

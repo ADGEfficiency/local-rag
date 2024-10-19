@@ -30,6 +30,9 @@ class Defaults:
     chunk_extensions: tuple[ChunkExtensions, ...] = dataclasses.field(
         default_factory=tuple
     )
+    db_fi: str = "db.duckdb"
+    n_chunks: int = 10
+    generate_response_with_raw_query: bool = False
 
 
 defaults = Defaults()
