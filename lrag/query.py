@@ -1,4 +1,5 @@
 import collections
+import time
 
 import loguru
 import ollama
@@ -6,7 +7,7 @@ import typer
 from typing_extensions import Annotated
 
 import lrag
-from lrag.config import defaults
+from lrag.config import LogLevel, defaults
 
 logger = loguru.logger
 
@@ -15,6 +16,7 @@ def get_document_for_query(
     db_fi: str, query: str, embedding_model: str, n_chunks: int
 ) -> dict[str, list]:
     con = lrag.db.connect_db(db_fi)
+    print(ollama.pull(embedding_model))
     embedding_dim = len(
         ollama.embeddings(model=embedding_model, prompt="a")["embedding"]
     )
@@ -56,7 +58,6 @@ def synthesize_prompt(query: str, docs: dict[str, list]) -> str:
 
 def generate_response(prompt: str, llm_model: str) -> str:
     logger.debug("start generating response...")
-    import time
 
     tic = time.time()
     options = ollama.Options(
@@ -77,6 +78,7 @@ app = typer.Typer()
 @app.command()
 def query(
     query: Annotated[str, typer.Argument()],
+    log_level: Annotated[LogLevel, typer.Option()] = LogLevel.INFO,
     embedding_model: Annotated[
         str,
         typer.Option(
@@ -90,32 +92,23 @@ def query(
             "--llm",
             help="Model used to generate the response.",
         ),
-    ] = defaults.embedding_model,
+    ] = defaults.llm_model,
     n_chunks: Annotated[
         int, typer.Option("--chunks", help="Number of chunks to use in the RAG prompt.")
     ] = defaults.n_chunks,
     db_fi: Annotated[
         str, typer.Option("--db", help="DuckDB database file.")
     ] = defaults.db_fi,
-    generate_response_with_raw_query: Annotated[
+    generate_with_no_context: Annotated[
         bool,
         typer.Option("--raw", help="Whether to query the raw LLM after the RAG LLM."),
     ] = defaults.generate_response_with_raw_query,
 ) -> None:
-    # cli
-    log_level = "DEBUG"
-    n_chunks = 10
-    embedding_model = defaults.embedding_model
-    llm_model = defaults.llm_model
-    db_fi = "temp.db"
-    raw_query = "technical debt"
-
     # setup logging
     logger = lrag.logger.setup_logging(log_level)
 
     # TODO - could rephrase this query with an LLM - query rephrasiing / query rewriting (this is an extension)
     # would include the raw query and rephrased query??? not sure
-    query = raw_query
 
     # get documents relevant for this query
 
@@ -135,7 +128,6 @@ def query(
     logger.info(f"generated {response=}")
 
     # optionally run the raw_query without any RAG context
-    generate_with_no_context = False
     if generate_with_no_context:
         response = generate_response(query, llm_model)
         logger.info(f"generated {response=}")

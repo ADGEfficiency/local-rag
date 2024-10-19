@@ -17,7 +17,7 @@ setup-test: setup-python
 	uv pip install -r pyproject.toml $(UV_ARGS) --extra test
 
 test: setup-test
-	uv run pytest tests
+	uv run pytest tests -s
 
 static: setup-test
 	mypy *.py

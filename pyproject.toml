@@ -50,5 +50,5 @@ no_implicit_optional = true
 strict_equality = true
 
 [[tool.mypy.overrides]]
-module = "bs4.*,markdownify.*,typing.*"
+module = "bs4.*,markdownify.*,typing.*,loguru.*"
 ignore_missing_imports = true
