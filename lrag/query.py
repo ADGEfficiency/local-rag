@@ -111,8 +111,12 @@ def query(
     # get documents relevant for this query
     # TODO - should this return `chunks` - chunk dataclass objects?  yes
     docs = get_document_for_query(db_fi, query, embedding_model, n_chunks)
-    logger.info(f"got {len(docs)} documents for {query=}")
-    logger.debug(f"document_fis: {set(docs['document_fi'])}")
+
+    document_fis = collections.Counter(docs["document_fi"])
+    logger.info(
+        f"got {len(docs['chunk'])} chunks from {len(document_fis)} documents for {query=}"
+    )
+    logger.info(f"document_fis: {document_fis})")
 
     # synthesise a response using the documents with an LLM
     # this includes inserting chunks & appending prompt again
@@ -120,9 +124,13 @@ def query(
 
     # generate a response with the LLM
     response = generate_response(prompt, llm_model)
-
-    # run the query versus the LLM
     logger.info(f"generated {response=}")
+
+    # optionally save the response to a markdown file
+    output_fi = "debug.md"
+    import pathlib
+
+    pathlib.Path(output_fi).write_text(response)
 
     # optionally run the raw_query without any RAG context
     if generate_with_no_context:
