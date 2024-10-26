@@ -52,7 +52,7 @@ def create_chunks_from_file_contents(
 ) -> list[Chunk]:
     chunk_strategy_dispatch = {
         "characters": lrag.chunking.chunk_text_by_character,
-        # TODO - "markdown-objects": None,
+        "markdown-objects": lrag.chunking.chunk_markdown_by_markdown_object,
     }
 
     chunks: list[Chunk] = []
@@ -65,16 +65,19 @@ def create_chunks_from_file_contents(
 
 def append_chunk_extensions(
     chunks: list[Chunk],
-    chunk_extensions: tuple[ChunkExtensions, ...],
+    chunk_extensions: list[ChunkExtensions, ...] | None,
 ) -> None:
+    if chunk_extensions is None:
+        return
+
     chunk_extensions_dispatch = {
         "file_path": lrag.chunking.prepend_file_path_to_chunk,
-        # TODO - contextual rag
+        "context": lrag.chunking.prepend_context_to_chunk,
         # TODO - inject topics
     }
 
     for chunk_extension in chunk_extensions:
-        chunk_extension_fn = chunk_extensions_dispatch[chunk_extension]
+        chunk_extension_fn = chunk_extensions_dispatch[chunk_extension.value]
         for chunk in chunks:
             chunk_extension_fn(chunk)
         print(f"ran {chunk_extension} on {len(chunks)} chunks")
@@ -124,13 +127,9 @@ def ingest(
     overlap_pct: Annotated[
         float, typer.Option("--overlap", help="Percentage overlap between chunks.")
     ] = 0.15,
-    chunk_extensions: Annotated[
-        tuple[ChunkExtensions] | None,
-        typer.Option(
-            help="Extensions for chunking",
-            callback=lambda v: tuple(v) if v is not None else (),
-        ),
-    ] = None,
+    chunk_add_file_path: Annotated[bool, typer.Option()] = False,
+    chunk_markdown_by_markdown_object: Annotated[bool, typer.Option()] = True,
+    chunk_add_context: Annotated[bool, typer.Option()] = False,
 ) -> None:
     # setup logging
     lrag.logger.setup_logging(log_level.value)
@@ -151,9 +150,13 @@ def ingest(
     chunks = create_chunks_from_file_contents(
         fis, chunk_strategy, chunk_size, overlap_pct
     )
+    chunk_extensions: list[ChunkExtensions] = []
+    if chunk_add_file_path:
+        chunk_extensions.append(ChunkExtensions.file_path)
+    if chunk_add_context:
+        chunk_extensions.append(ChunkExtensions.context)
 
     # add extensions to chunks - context, file path etc
-    assert chunk_extensions is not None
     append_chunk_extensions(chunks, chunk_extensions)
 
     # insert into database

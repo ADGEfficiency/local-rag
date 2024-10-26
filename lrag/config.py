@@ -17,6 +17,7 @@ class ChunkStrategies(str, Enum):
 
 class ChunkExtensions(str, Enum):
     file_path = "file_path"
+    markdown = "markdown"
     context = "context"
 
 

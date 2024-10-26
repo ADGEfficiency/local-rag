@@ -2,6 +2,7 @@ import bs4
 import mistune
 from markdownify import markdownify
 
+from lrag.config import defaults
 from lrag.models import Chunk, File
 
 
@@ -22,10 +23,6 @@ def chunk_text_by_character(
                 )
             )
     return chunks
-
-
-def prepend_file_path_to_chunk(chunk: Chunk) -> None:
-    chunk.chunk_content = f"file: {chunk.file.folder.name}/{chunk.file.path.relative_to(chunk.file.folder)}, chunk: {chunk.chunk_content}"
 
 
 def chunk_markdown_by_markdown_object(
@@ -71,3 +68,44 @@ def chunk_markdown_by_markdown_object(
     # TODO - remove small chunks based on size?
 
     return chunks
+
+
+def prepend_file_path_to_chunk(chunk: Chunk) -> None:
+    chunk.chunk_content = f"file: {chunk.file.folder.name}/{chunk.file.path.relative_to(chunk.file.folder)}, chunk: {chunk.chunk_content}"
+
+
+def prepend_context_to_chunk(
+    chunk: Chunk,
+    # fi_md: str,
+    # chunk_content: str,
+    # llm_model: str
+) -> None:
+    import textwrap
+
+    import ollama
+
+    fi_md = chunk.file.file_content
+    chunk_content = chunk.raw_chunk_content
+    llm_model = defaults.llm_model
+
+    chunk_context_query = textwrap.dedent(
+        f"""<document>
+        {fi_md}
+        </document>
+        Here is the chunk we want to situate within the whole document:
+        <chunk>
+        {chunk_content}
+        </chunk>
+        Please give a short succint context to situate this chunk within the overall document for the
+        purposes of improving search retreival of the chunk. Answer only with the succint contexnt
+        and nothing else. If there is any Python code in the block, explain what it does.
+        Begin your answer with `This chunk contains`. Your answer should contain `This chunk contains`.
+    """
+    )
+    ollama.pull(llm_model)
+    chunk_context = ollama.generate(model=llm_model, prompt=chunk_context_query)[
+        "response"
+    ]
+    # TODO - capitalize the first letter of chunk_context
+    chunk_context = chunk_context.replace("This chunk contains ", "")
+    chunk.chunk_content = f"context: {chunk_context}, {chunk.chunk_content}"

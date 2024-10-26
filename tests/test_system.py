@@ -48,6 +48,8 @@ def test_ingest_and_query(
             "*.md",
             "--embedding",
             "all-minilm:22m",
+            "--chunk-add-file-path",
+            "--chunk-add-context",
         ],
     )
     print(f"{ingest_result.stdout=}")
