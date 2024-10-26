@@ -30,12 +30,13 @@ def setup_db(db_fi: str, embedding_model: str) -> None:
             document_fi TEXT,
             chunk TEXT,
             vector FLOAT[{embedding_dim}],
+            embedding_model TEXT,
             UNIQUE(document_fi, chunk)
         )
         """
     )
-    con.execute("DROP INDEX IF EXISTS idx;")
-    con.execute("CREATE INDEX idx ON embeddings USING HNSW (vector);")
+    con.execute("DROP INDEX IF EXISTS hnsw;")
+    con.execute("CREATE INDEX hnsw ON embeddings USING HNSW (vector);")
 
 
 def get_previous_ingested_files(db_fi: str, reingest_files: bool) -> set[pathlib.Path]:
@@ -59,9 +60,11 @@ def get_previous_ingested_files(db_fi: str, reingest_files: bool) -> set[pathlib
 def insert_chunks(db_fi: str, chunks: list[Chunk], embedding_model: str) -> None:
     con = connect_db(db_fi)
     ollama.pull(embedding_model)
-    to_insert: list[tuple[str, str, str]] = []
+    to_delete: list[tuple[str, str]] = []
+    to_insert: list[tuple[str, str, str, str]] = []
     for chunk in chunks:
         logger.debug(f"embedding {chunk}")
+        to_delete.append((str(chunk.file.path), chunk.chunk_content))
         to_insert.append(
             (
                 str(chunk.file.path),
@@ -71,6 +74,7 @@ def insert_chunks(db_fi: str, chunks: list[Chunk], embedding_model: str) -> None
                         model=embedding_model, prompt=chunk.chunk_content
                     )["embedding"]
                 ),
+                embedding_model,
             )
         )
 
@@ -78,11 +82,18 @@ def insert_chunks(db_fi: str, chunks: list[Chunk], embedding_model: str) -> None
         print("no chunks to insert")
         return
 
+    # can't do with an ON CONFLICT UPDATE, as vector is used in an index
+    # you drop HNSW index and re-create, but then you can't update the vector
+    # a DELETE and INSERT will mean that documents being reingested will end up with
+    # a different `document_id`, even if the vector chunk is not being changed
+    # the implementation below will ignore chunks that already exist - if you reingested with a different
+    # embedding model, you would get different embeddings in one database
     con.executemany(
         """
-        INSERT OR REPLACE INTO embeddings (default, document_fi, chunk, vector)
-        VALUES (?, ?, ?);
-        """,
+            INSERT INTO embeddings (document_fi, chunk, vector, embedding_model)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT DO NOTHING;
+            """,
         to_insert,
     )
     print(f"inserted {len(to_insert)} chunks")
