@@ -1,5 +1,6 @@
 import pathlib
 
+import loguru
 import typer
 from typing_extensions import Annotated
 
@@ -8,6 +9,8 @@ from lrag.config import ChunkExtensions, ChunkStrategies, LogLevel, defaults
 from lrag.models import Chunk, File
 
 cli = typer.Typer(rich_markup_mode=None)
+
+logger = loguru.logger
 
 
 def get_file_content(fi: pathlib.Path) -> str | None:
@@ -31,14 +34,14 @@ def get_content_from_files(
                 ignored_fis = fi_paths.intersection(previously_ingested_files)
                 fi_paths = fi_paths.difference(previously_ingested_files)
                 if ignored_fis:
-                    print(f"ignoring {ignored_fis}")
+                    logger.debug(f"ignoring {ignored_fis}")
 
             for fi_path in fi_paths:
                 content = get_file_content(fi_path)
                 if content is not None:
                     fis.append(File(folder=folder, path=fi_path, file_content=content))
 
-            print(
+            logger.debug(
                 f"found {len(list(fis))} files for {glob}, {len(fis)} files processed"
             )
     return fis
@@ -59,7 +62,9 @@ def create_chunks_from_file_contents(
     for fi in fis:
         chunk_strategy_fn = chunk_strategy_dispatch[chunk_strategy]
         chunks.extend(chunk_strategy_fn(fi, chunk_size, overlap_pct))
-    print(f"created {len(chunks)} chunks from {len(fis)} files using {chunk_strategy=}")
+    logger.debug(
+        f"created {len(chunks)} chunks from {len(fis)} files using {chunk_strategy=}"
+    )
     return chunks
 
 
@@ -71,16 +76,17 @@ def append_chunk_extensions(
         return
 
     chunk_extensions_dispatch = {
-        "file_path": lrag.chunking.prepend_file_path_to_chunk,
-        "context": lrag.chunking.prepend_context_to_chunk,
-        # TODO - inject topics
+        "file_path": lrag.chunk_extensions.prepend_file_path_to_chunk,
+        "context": lrag.chunk_extensions.prepend_context_to_chunk,
+        "queries": lrag.chunk_extensions.prepend_queries_to_chunk,
+        # TODO - prepend topics
     }
 
     for chunk_extension in chunk_extensions:
         chunk_extension_fn = chunk_extensions_dispatch[chunk_extension.value]
         for chunk in chunks:
             chunk_extension_fn(chunk)
-        print(f"ran {chunk_extension} on {len(chunks)} chunks")
+        logger.debug(f"ran {chunk_extension} on {len(chunks)} chunks")
 
 
 @cli.command()
@@ -130,6 +136,7 @@ def ingest(
     chunk_add_file_path: Annotated[bool, typer.Option()] = False,
     chunk_markdown_by_markdown_object: Annotated[bool, typer.Option()] = True,
     chunk_add_context: Annotated[bool, typer.Option()] = False,
+    chunk_add_queries: Annotated[bool, typer.Option()] = False,
 ) -> None:
     # setup logging
     lrag.logger.setup_logging(log_level.value)
@@ -155,6 +162,8 @@ def ingest(
         chunk_extensions.append(ChunkExtensions.file_path)
     if chunk_add_context:
         chunk_extensions.append(ChunkExtensions.context)
+    if chunk_add_queries:
+        chunk_extensions.append(ChunkExtensions.queries)
 
     # add extensions to chunks - context, file path etc
     append_chunk_extensions(chunks, chunk_extensions)

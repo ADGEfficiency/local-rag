@@ -19,6 +19,7 @@ class ChunkExtensions(str, Enum):
     file_path = "file_path"
     markdown = "markdown"
     context = "context"
+    queries = "queries"
 
 
 @dataclasses.dataclass
