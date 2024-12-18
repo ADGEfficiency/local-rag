@@ -88,9 +88,3 @@ Options:
   --help                          Show this message and exit.
 ```
 
-## Config Explanation
-
-Precedence (high precendec to low):
-CLI arguments
-Env vars
-Defaults in Python object

@@ -2,6 +2,7 @@ import pathlib
 
 import loguru
 import typer
+from rich.progress import Progress
 from typing_extensions import Annotated
 
 import lrag
@@ -41,7 +42,7 @@ def get_content_from_files(
                 if content is not None:
                     fis.append(File(folder=folder, path=fi_path, file_content=content))
 
-            logger.debug(
+            logger.info(
                 f"found {len(list(fis))} files for {glob}, {len(fis)} files processed"
             )
     return fis
@@ -62,7 +63,7 @@ def create_chunks_from_file_contents(
     for fi in fis:
         chunk_strategy_fn = chunk_strategy_dispatch[chunk_strategy]
         chunks.extend(chunk_strategy_fn(fi, chunk_size, overlap_pct))
-    logger.debug(
+    logger.info(
         f"created {len(chunks)} chunks from {len(fis)} files using {chunk_strategy=}"
     )
     return chunks
@@ -83,10 +84,16 @@ def append_chunk_extensions(
     }
 
     for chunk_extension in chunk_extensions:
-        chunk_extension_fn = chunk_extensions_dispatch[chunk_extension.value]
-        for chunk in chunks:
-            chunk_extension_fn(chunk)
-        logger.debug(f"ran {chunk_extension} on {len(chunks)} chunks")
+        with Progress() as progress:
+            task = progress.add_task(
+                f"running {chunk_extension} on {len(chunks)} chunks...",
+                total=len(chunks),
+            )
+            logger.info(f"running {chunk_extension} on {len(chunks)} chunks...")
+            chunk_extension_fn = chunk_extensions_dispatch[chunk_extension.value]
+            for chunk in chunks:
+                chunk_extension_fn(chunk)
+                progress.advance(task)
 
 
 @cli.command()
