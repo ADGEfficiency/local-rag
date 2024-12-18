@@ -48,6 +48,8 @@ def test_ingest_and_query(
             "*.md",
             "--embedding",
             "all-minilm:22m",
+            "--chunk-add-file-path",
+            "--no-chunk-add-context",
         ],
     )
     print(f"{ingest_result.stdout=}")
@@ -58,13 +60,9 @@ def test_ingest_and_query(
             "SELECT document_fi, chunk, vector FROM embeddings"
         ).fetchall()
 
-    # check expected number of chunks
     assert len(result) == 4
-    # check file name
     assert os.path.samefile(result[0][0], str(dummy_md_fi))
-    # check chunk
     assert "chunk: adam green" in result[0][1]
-    # check embedding dimension
     assert len(result[0][2]) == 384
 
     query_result = runner.invoke(

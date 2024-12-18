@@ -58,7 +58,7 @@ def insert_chunks(db_fi: str, chunks: list[Chunk], embedding_model: str) -> None
     con = connect_db(db_fi)
     ollama.pull(embedding_model)
     to_insert: list[tuple[str, str, str]] = []
-    for chunk in chunks[:10]:
+    for chunk in chunks:
         logger.debug(f"embedding {chunk}")
         to_insert.append(
             (

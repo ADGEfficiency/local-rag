@@ -1,2 +1,3 @@
 *.duckdb*
 duckdb_vss
+*.db

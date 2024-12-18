@@ -1,6 +1,8 @@
 import pathlib
 
+import loguru
 import typer
+from rich.progress import Progress
 from typing_extensions import Annotated
 
 import lrag
@@ -8,6 +10,8 @@ from lrag.config import ChunkExtensions, ChunkStrategies, LogLevel, defaults
 from lrag.models import Chunk, File
 
 cli = typer.Typer(rich_markup_mode=None)
+
+logger = loguru.logger
 
 
 def get_file_content(fi: pathlib.Path) -> str | None:
@@ -31,14 +35,14 @@ def get_content_from_files(
                 ignored_fis = fi_paths.intersection(previously_ingested_files)
                 fi_paths = fi_paths.difference(previously_ingested_files)
                 if ignored_fis:
-                    print(f"ignoring {ignored_fis}")
+                    logger.debug(f"ignoring {ignored_fis}")
 
             for fi_path in fi_paths:
                 content = get_file_content(fi_path)
                 if content is not None:
                     fis.append(File(folder=folder, path=fi_path, file_content=content))
 
-            print(
+            logger.info(
                 f"found {len(list(fis))} files for {glob}, {len(fis)} files processed"
             )
     return fis
@@ -52,32 +56,44 @@ def create_chunks_from_file_contents(
 ) -> list[Chunk]:
     chunk_strategy_dispatch = {
         "characters": lrag.chunking.chunk_text_by_character,
-        # TODO - "markdown-objects": None,
+        "markdown-objects": lrag.chunking.chunk_markdown_by_markdown_object,
     }
 
     chunks: list[Chunk] = []
     for fi in fis:
         chunk_strategy_fn = chunk_strategy_dispatch[chunk_strategy]
         chunks.extend(chunk_strategy_fn(fi, chunk_size, overlap_pct))
-    print(f"created {len(chunks)} chunks from {len(fis)} files using {chunk_strategy=}")
+    logger.info(
+        f"created {len(chunks)} chunks from {len(fis)} files using {chunk_strategy=}"
+    )
     return chunks
 
 
 def append_chunk_extensions(
     chunks: list[Chunk],
-    chunk_extensions: tuple[ChunkExtensions, ...],
+    chunk_extensions: list[ChunkExtensions, ...] | None,
 ) -> None:
+    if chunk_extensions is None:
+        return
+
     chunk_extensions_dispatch = {
-        "file_path": lrag.chunking.prepend_file_path_to_chunk,
-        # TODO - contextual rag
-        # TODO - inject topics
+        "file_path": lrag.chunk_extensions.prepend_file_path_to_chunk,
+        "context": lrag.chunk_extensions.prepend_context_to_chunk,
+        "queries": lrag.chunk_extensions.prepend_queries_to_chunk,
+        # TODO - prepend topics
     }
 
     for chunk_extension in chunk_extensions:
-        chunk_extension_fn = chunk_extensions_dispatch[chunk_extension]
-        for chunk in chunks:
-            chunk_extension_fn(chunk)
-        print(f"ran {chunk_extension} on {len(chunks)} chunks")
+        with Progress() as progress:
+            task = progress.add_task(
+                f"running {chunk_extension} on {len(chunks)} chunks...",
+                total=len(chunks),
+            )
+            logger.info(f"running {chunk_extension} on {len(chunks)} chunks...")
+            chunk_extension_fn = chunk_extensions_dispatch[chunk_extension.value]
+            for chunk in chunks:
+                chunk_extension_fn(chunk)
+                progress.advance(task)
 
 
 @cli.command()
@@ -124,13 +140,10 @@ def ingest(
     overlap_pct: Annotated[
         float, typer.Option("--overlap", help="Percentage overlap between chunks.")
     ] = 0.15,
-    chunk_extensions: Annotated[
-        tuple[ChunkExtensions] | None,
-        typer.Option(
-            help="Extensions for chunking",
-            callback=lambda v: tuple(v) if v is not None else (),
-        ),
-    ] = None,
+    chunk_add_file_path: Annotated[bool, typer.Option()] = False,
+    chunk_markdown_by_markdown_object: Annotated[bool, typer.Option()] = True,
+    chunk_add_context: Annotated[bool, typer.Option()] = False,
+    chunk_add_queries: Annotated[bool, typer.Option()] = False,
 ) -> None:
     # setup logging
     lrag.logger.setup_logging(log_level.value)
@@ -151,9 +164,15 @@ def ingest(
     chunks = create_chunks_from_file_contents(
         fis, chunk_strategy, chunk_size, overlap_pct
     )
+    chunk_extensions: list[ChunkExtensions] = []
+    if chunk_add_file_path:
+        chunk_extensions.append(ChunkExtensions.file_path)
+    if chunk_add_context:
+        chunk_extensions.append(ChunkExtensions.context)
+    if chunk_add_queries:
+        chunk_extensions.append(ChunkExtensions.queries)
 
     # add extensions to chunks - context, file path etc
-    assert chunk_extensions is not None
     append_chunk_extensions(chunks, chunk_extensions)
 
     # insert into database

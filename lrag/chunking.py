@@ -24,10 +24,6 @@ def chunk_text_by_character(
     return chunks
 
 
-def prepend_file_path_to_chunk(chunk: Chunk) -> None:
-    chunk.chunk_content = f"file: {chunk.file.folder.name}/{chunk.file.path.relative_to(chunk.file.folder)}, chunk: {chunk.chunk_content}"
-
-
 def chunk_markdown_by_markdown_object(
     text: str, n_elements_window: int = 1, n_paragraph_window: int = 1
 ) -> list[str]:
